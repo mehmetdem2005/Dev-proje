@@ -13,7 +13,7 @@ class MainActivity : Activity() {
                 WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
         )
         enterImmersiveMode()
-        setContentView(GameView(this))
+        setContentView(WorldConquestView(this))
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
