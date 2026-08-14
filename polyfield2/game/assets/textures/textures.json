@@ -3,15 +3,32 @@
   "convention": "normal=OpenGL green-up, orm=R:AO G:rough B:metal",
   "materials": [
     {
-      "name": "ground_rocky",
+      "name": "uniform_ranger",
       "size": 512,
-      "seconds": 1.54,
+      "seconds": 1.15,
       "roughness_range": [
-        0.74,
-        0.88
+        0.68,
+        0.94
       ],
-      "metallic_mean": 0.0,
-      "ao_min": 0.38,
+      "metallic_mean": 0.053,
+      "ao_min": 0.45,
+      "maps": [
+        "albedo",
+        "normal",
+        "orm",
+        "height"
+      ]
+    },
+    {
+      "name": "uniform_legion",
+      "size": 512,
+      "seconds": 0.53,
+      "roughness_range": [
+        0.68,
+        0.94
+      ],
+      "metallic_mean": 0.051,
+      "ao_min": 0.45,
       "maps": [
         "albedo",
         "normal",

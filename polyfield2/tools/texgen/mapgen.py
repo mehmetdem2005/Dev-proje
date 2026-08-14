@@ -83,11 +83,18 @@ def srgb_from_hex(value: str) -> np.ndarray:
     return np.array([int(value[i:i + 2], 16) / 255.0 for i in (0, 2, 4)])
 
 
-def overlay(base: np.ndarray, detail: np.ndarray, amount: float = 1.0) -> np.ndarray:
-    """Photoshop-style overlay blend of a grayscale detail onto RGB."""
+def overlay(base: np.ndarray, detail: np.ndarray, amount=1.0) -> np.ndarray:
+    """Photoshop-style overlay blend of a grayscale detail onto RGB.
+
+    `amount` may be a scalar or a per-texel mask; a 2D mask is promoted to a
+    trailing channel axis so it broadcasts against the RGB base.
+    """
     d = detail[..., None]
+    strength = np.asarray(amount, dtype=np.float64)
+    if strength.ndim == 2:
+        strength = strength[..., None]
     blended = np.where(base < 0.5, 2.0 * base * d, 1.0 - 2.0 * (1.0 - base) * (1.0 - d))
-    return np.clip(base * (1.0 - amount) + blended * amount, 0.0, 1.0)
+    return np.clip(base * (1.0 - strength) + blended * strength, 0.0, 1.0)
 
 
 def contrast(a: np.ndarray, amount: float, pivot: float = 0.5) -> np.ndarray:

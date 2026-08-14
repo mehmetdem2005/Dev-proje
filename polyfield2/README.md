@@ -1,0 +1,136 @@
+# Polyfield 2 — Ridgeline
+
+Godot 4.6.3 (Mobile renderer) first-person skirmish prototype, with every
+texture, mesh, rig and animation generated from source in this repository.
+Nothing is downloaded, purchased or copied from another game.
+
+```
+polyfield2/
+  tools/
+    texgen/          procedural PBR texture generator (numpy, no dependencies)
+    blender/         mesh, rig and animation generators (Blender 4.5 headless)
+    build_all.sh     rebuild everything, then re-import the Godot project
+  game/              the Godot 4.6.3 project
+    assets/          generated output — textures, models, map layout
+    scripts/         GDScript
+    shaders/         terrain splat shader
+    scenes/          main, player, soldier
+```
+
+## Building
+
+```bash
+tools/build_all.sh                 # everything
+tools/build_all.sh --size 1024     # higher-resolution textures
+tools/build_all.sh --skip-textures # meshes only
+```
+
+Requires Blender 4.5+ (`BLENDER=`) and Godot 4.6.3 (`GODOT=`). Every generator
+is seeded, so a rebuild reproduces the same assets.
+
+## What gets generated
+
+### Textures — `tools/texgen`
+
+Thirteen material sets, each written as four maps:
+
+| Map | Contents | Colour space |
+| --- | --- | --- |
+| `<name>_albedo.png` | base colour | sRGB |
+| `<name>_normal.png` | tangent-space normal, OpenGL convention (green up) | linear |
+| `<name>_orm.png` | R = AO, G = roughness, B = metallic | linear |
+| `<name>_height.png` | height field the other three were derived from | linear |
+
+The ORM pack is not a convenience: `ORMMaterial3D` reads all three channels
+from one sampler, which on the Mobile renderer is worth more than any amount
+of separate map authoring.
+
+Materials: `rock_granite`, `cliff_strata`, `ground_rocky`, `grass_highland`,
+`soil_trench`, `sandbag_burlap`, `wood_plank`, `metal_corrugated`,
+`concrete_bunker`, `crate_wood`, `uniform_ranger`, `uniform_legion`,
+`gunmetal`.
+
+Everything tiles seamlessly. The noise library uses a 3×3-neighbourhood Worley
+implementation with F2−F1 cell edges — that is what turns cellular noise into
+fracture networks rather than blobs, and it made generation about twenty times
+faster than a brute-force distance scan.
+
+### Map — `tools/blender/layout.py`
+
+One module defines the battlefield: landforms, trench polylines, craters,
+capture zones, spawns and prop scatter. The terrain generator carves from it
+and Godot reads the exported `layout.json` to place everything. A trench module
+cannot drift away from the channel cut for it, because both come from the same
+numbers.
+
+"Ridgeline" is 192 × 192 m of rocky highland: a meandering ridge, seven rock
+outcrops, five capture zones (A–E), eight trench lines with parapets and
+craters, and a rocky boundary rim. About 77% of the playable area is walkable
+below 35°, and each capture zone is levelled to under 13° median slope.
+
+### Meshes
+
+| Asset | Detail | Triangles |
+| --- | --- | --- |
+| `terrain_ridgeline.glb` | 193×193 heightfield, 16 chunks, splat mask in vertex colours | 73 728 |
+| `rocks.glb` | 5 boulders + 2 cliff blocks | 80–320 each |
+| `fortifications.glb` | revetted trench bay, sandbag wall/stack, hedgehog, dugout roof | 76–1 108 |
+| `props.glb` | crate, barrel, ammo box, capture mast + banner | 102–308 |
+| `weapons.glb` | rifle, SMG, LMG, pistol, launcher | 380–736 |
+| `soldier_ranger.glb` / `soldier_legion.glb` | rigged, skinned, 11 clips | 1 024 |
+
+Textures are deliberately **not** embedded in the GLBs. All thirteen sets are
+shared, so embedding would copy megabytes of PNG into every file; the GLBs
+carry material *names* and `MaterialLibrary` binds the real materials at load.
+
+### Rig and animation
+
+24 bones (including a `WeaponSocket` under the right hand), skinned by explicit
+bone-segment distance rather than Blender's heat weighting — heat diffusion
+needs watertight connected geometry and fails on a figure assembled from
+separate limb prisms.
+
+Eleven clips: `idle`, `walk`, `run`, `crouch_idle`, `crouch_walk`, `aim`,
+`fire`, `reload`, `hit`, `death`, `jump`.
+
+## The game
+
+- **Mobile renderer**, verified at runtime (`Vulkan — Forward Mobile`).
+- **Territory Control**: five zones on one tug-of-war bar per point, so a
+  contested zone simply stops moving and a half-taken zone pays nobody.
+- **Touch HUD** built in code: left-thumb virtual stick, right-thumb look,
+  fire / aim / crouch / jump / sprint / reload. Multi-touch is tracked per
+  finger index, so moving and looking at once works.
+- **Five weapons** with per-weapon fire interval, spread, recoil spring,
+  magazine and reload.
+- **AI soldiers** walking between zones, driving the exported animation set
+  from actual movement state.
+
+Level build cost at startup: ~200 ms for 16 terrain chunks, 190 rocks, 114
+trench bays, 47 sandbag sets, 25 props and 5 zones. Repeated geometry is drawn
+through `MultiMeshInstance3D`, which keeps the whole scene at ~154 draw calls.
+
+## Verification
+
+Two harnesses, both headless:
+
+```bash
+# render any GLB from several angles
+blender -b --python tools/blender/preview.py -- <file.glb> out.png --mode grid --clay
+
+# render the running game
+xvfb-run -a godot --resolution 1280x720 -- --shot out.png --shot-frame 150
+```
+
+The in-game one also prints frame stats (objects, primitives, draw calls) so a
+change that quietly doubles the draw calls is visible immediately.
+
+## Known gaps
+
+- Soldier proportions read correctly but the legs are still slightly long
+  against the torso; a proportion pass would improve the silhouette.
+- No LOD chain is authored for the meshes — Godot's automatic mesh LOD is
+  doing the work. Hand-authored LODs are the next real performance win.
+- Bots navigate by straight-line steering, not a navmesh, so they will press
+  against a boulder rather than walk around it.
+- No sound.

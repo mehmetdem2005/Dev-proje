@@ -12,6 +12,12 @@ Bu klasör, **Polyfield 2**'nin sanat yönü, dünya tasarımı ve asset üretim
 | 03 | [Asset Listesi](03-asset-listesi.md) | ~1100 kalemlik envanter, poligon bütçeleri, üretim dalgaları |
 | 04 | [Teknik Bütçe ve Pipeline](04-teknik-butce-pipeline.md) | Cihaz matrisi, kare bütçesi, doku stratejisi, kabul kontrol listesi, araç zinciri |
 | 05 | [Yol Haritası](05-yol-haritasi.md) | Ekip, 36 haftalık takvim, kritik yol, riskler, başarı ölçütleri |
+| 06 | [Çalışan Prototip](06-prototip.md) | Fiilen inşa edilen "Ridgeline" prototipi ve plandan sapmalar |
+
+> **Not:** `00`–`05` orijinal WW2 devam oyunu planıdır. Sonraki karar oyunu
+> farklılaştırmak yönünde oldu; çalışan prototip ve plandan sapmalar
+> [`06-prototip.md`](06-prototip.md), kod ve varlıklar
+> [`polyfield2/`](../../polyfield2/) altında.
 
 ## Tek Sayfalık Özet
 

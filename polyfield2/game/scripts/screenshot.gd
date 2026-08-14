@@ -52,13 +52,20 @@ func _process(_delta: float) -> void:
 		return
 	_frames += 1
 
-	# Place the observer camera once the level exists, not on frame one.
-	if _frames == maxi(2, _frame_target - 30) and _camera_position != Vector3.INF:
-		_place_camera()
-
 	if _frames < _frame_target:
 		return
 	_armed = false
+
+	# Camera placement happens on the capture frame, not earlier. Under
+	# software rasterisation a frame can be a third of a second, so a subject
+	# framed 30 frames ahead of the shot has already walked out of view.
+	if _arg("--shot-follow") != "":
+		_follow_subject(_arg("--shot-follow"))
+	elif _camera_position != Vector3.INF:
+		_place_camera()
+
+	# Two frames: the first applies the new camera, the second draws with it.
+	await RenderingServer.frame_post_draw
 	await RenderingServer.frame_post_draw
 
 	var image := get_viewport().get_texture().get_image()
@@ -77,6 +84,20 @@ func _process(_delta: float) -> void:
 		Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
 	])
 	get_tree().quit()
+
+
+## Frame a live node from a group instead of a fixed world position. Guessing
+## coordinates on a 192 m map reliably puts the camera inside a hill.
+func _follow_subject(group: String) -> void:
+	var subjects := get_tree().get_nodes_in_group(group)
+	if subjects.is_empty():
+		push_warning("[Shot] no nodes in group %s" % group)
+		return
+	var subject: Node3D = subjects[0]
+	var origin := subject.global_position
+	_camera_position = origin + Vector3(2.6, 1.5, 2.6)
+	_camera_look = origin + Vector3.UP * 1.0
+	_place_camera()
 
 
 func _place_camera() -> void:

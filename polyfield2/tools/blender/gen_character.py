@@ -113,8 +113,13 @@ def _prism(name, p0, p1, r0, r1, sides=6, twist=0.0):
 
 
 def build_body():
-    """Return (cloth_parts, gear_parts) — two groups so each gets its atlas band."""
-    cloth, gear = [], []
+    """Return (cloth, skin, gear) — one group per uniform atlas band.
+
+    The split has to match materials.UNIFORM_BANDS exactly; head and neck get
+    their own band so the faction accent painted on the gear band can never
+    end up across the soldier's face.
+    """
+    cloth, skin, gear = [], [], []
 
     # Torso: chest tapering into the waist, plus a slight back curve.
     chest = _bevelled_box("chest", (0.45, 0.26, 0.35), bevel=0.04)
@@ -128,12 +133,12 @@ def build_body():
     cloth.append(hips)
 
     neck = _prism("neck", (0, 0, 1.40), (0, 0, 1.54), (0.070, 0.062), (0.062, 0.056), sides=6)
-    cloth.append(neck)
+    skin.append(neck)
 
     # Head and helmet.
     head = _bevelled_box("head", (0.20, 0.23, 0.24), bevel=0.05)
     head.location = (0.0, 0.015, 1.635)
-    cloth.append(head)
+    skin.append(head)
 
     helmet = _prism("helmet", (0, 0.008, 1.635), (0, 0.008, 1.765),
                     (0.132, 0.142), (0.085, 0.09), sides=8)
@@ -189,7 +194,7 @@ def build_body():
                   (0.055, 0.055), (0.055, 0.055), sides=6)
     gear.append(roll)
 
-    return cloth, gear
+    return cloth, skin, gear
 
 
 # --------------------------------------------------------------------------
@@ -491,22 +496,31 @@ def build_animations(armature):
 # Build
 # --------------------------------------------------------------------------
 
+# Must match materials.UNIFORM_BANDS. Each range is inset slightly so
+# bilinear filtering never samples across a band boundary.
+ATLAS_BANDS = {
+    "cloth": (0.02, 0.55),
+    "skin": (0.605, 0.675),
+    "gear": (0.725, 0.98),
+}
+
+
 def build_soldier(material_name):
-    cloth_parts, gear_parts = build_body()
+    cloth_parts, skin_parts, gear_parts = build_body()
 
-    cloth = pf.join_objects(cloth_parts, "soldier_cloth")
-    pf.select_only(cloth)
-    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-    pf.box_project_uv(cloth, scale=0.9)
-    pf.atlas_uv(cloth, 0.02, 0.72)
+    groups = []
+    for name, parts, projection in (("cloth", cloth_parts, 0.9),
+                                    ("skin", skin_parts, 0.5),
+                                    ("gear", gear_parts, 0.55)):
+        merged = pf.join_objects(parts, "soldier_%s" % name)
+        pf.select_only(merged)
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+        pf.box_project_uv(merged, scale=projection)
+        lo, hi = ATLAS_BANDS[name]
+        pf.atlas_uv(merged, lo, hi)
+        groups.append(merged)
 
-    gear = pf.join_objects(gear_parts, "soldier_gear")
-    pf.select_only(gear)
-    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-    pf.box_project_uv(gear, scale=0.55)
-    pf.atlas_uv(gear, 0.77, 0.98)
-
-    body = pf.join_objects([cloth, gear], "soldier")
+    body = pf.join_objects(groups, "soldier")
     pf.shade_smooth(body, angle_deg=34.0)
     pf.apply_modifiers(body)
     pf.triangulate(body)

@@ -373,14 +373,19 @@ def crate_wood(size, seed=103):
 # Character and weapon materials
 # --------------------------------------------------------------------------
 
-def _uniform(size, seed, cloth_a, cloth_b, accent, webbing):
-    """Shared uniform builder — only the palette differs between factions.
+#: Atlas bands, shared with gen_character.py. The mesh squeezes each body
+#: group into its band, so these ranges and the ones used there must agree —
+#: an earlier version had the accent stripe spanning all cloth U, which landed
+#: it squarely across the soldier's face.
+UNIFORM_BANDS = {
+    "cloth": (0.00, 0.58),   # torso, arms, legs
+    "skin": (0.58, 0.70),    # head and neck
+    "gear": (0.70, 1.00),    # helmet, boots, webbing, pack, hands
+}
 
-    UV layout expected by the character mesh (see gen_character.py):
-      U 0.00-0.50  torso and arms (cloth)
-      U 0.50-0.75  legs (cloth, darker)
-      U 0.75-1.00  webbing, boots, helmet (accent + leather)
-    """
+
+def _uniform(size, seed, cloth_a, cloth_b, accent, webbing, skin):
+    """Shared uniform builder — only the palette differs between factions."""
     twill = nl.stripes(size, 180, 45.0, jitter=0.35, seed=seed)
     fold = nl.fbm(size, 8, 5, seed + 1)
     wear = nl.fbm(size, 14, 4, seed + 2)
@@ -388,24 +393,33 @@ def _uniform(size, seed, cloth_a, cloth_b, accent, webbing):
     height = nl.normalise(twill * 0.35 + fold * 0.45 + wear * 0.2)
 
     u = np.linspace(0.0, 1.0, size, endpoint=False)[None, :].repeat(size, 0)
-    legs = ((u >= 0.50) & (u < 0.75)).astype(np.float64)
-    gear = (u >= 0.75).astype(np.float64)
+    v = np.linspace(0.0, 1.0, size, endpoint=False)[:, None].repeat(size, 1)
+    cloth_lo, cloth_hi = UNIFORM_BANDS["cloth"]
+    skin_lo, skin_hi = UNIFORM_BANDS["skin"]
+    gear_lo, _gear_hi = UNIFORM_BANDS["gear"]
+
+    skin_mask = ((u >= skin_lo) & (u < skin_hi)).astype(np.float64)
+    gear_mask = (u >= gear_lo).astype(np.float64)
+    # Lower cloth reads darker, as trousers do against a tunic.
+    lower = ((u >= cloth_hi * 0.55) & (u < cloth_hi)).astype(np.float64)
 
     base = _mix(_rgb(cloth_a, size), _rgb(cloth_b, size), fold)
-    base = _mix(base, _rgb(cloth_a, size) * 0.78, legs)
-    base = _mix(base, _rgb(webbing, size), gear)
+    base = _mix(base, _rgb(cloth_a, size) * 0.78, lower)
+    base = _mix(base, _rgb(skin, size), skin_mask)
+    base = _mix(base, _rgb(webbing, size), gear_mask)
 
-    # Accent stripe reads as the faction marker at silhouette distance.
-    v = np.linspace(0.0, 1.0, size, endpoint=False)[:, None].repeat(size, 1)
-    stripe = (((v > 0.06) & (v < 0.12)) & (u < 0.50)).astype(np.float64)
+    # Faction accent lives on the gear band only, where it reads as a helmet
+    # band and armband rather than a stripe painted across whatever the box
+    # projection happened to put at that V.
+    stripe = (((v > 0.30) & (v < 0.42)) & (u >= gear_lo)).astype(np.float64)
     base = _mix(base, _rgb(accent, size), stripe * 0.9)
 
     dirt = np.clip(wear * 1.7 - 0.6, 0.0, 1.0)
-    base = _mix(base, _rgb(HEX("3E3529"), size), dirt * 0.45)
-    albedo = mg.overlay(base, twill, 0.22)
+    base = _mix(base, _rgb(HEX("3E3529"), size), dirt * 0.45 * (1.0 - skin_mask))
+    albedo = mg.overlay(base, twill, 0.22 * (1.0 - skin_mask * 0.7))
 
-    roughness = np.clip(0.88 - gear * 0.2 + twill * 0.06, 0.4, 0.98)
-    metallic = gear * np.clip(nl.value_noise(size, 40, seed + 8) * 0.35, 0.0, 0.35)
+    roughness = np.clip(0.88 - gear_mask * 0.2 + twill * 0.06 - skin_mask * 0.14, 0.4, 0.98)
+    metallic = gear_mask * np.clip(nl.value_noise(size, 40, seed + 8) * 0.35, 0.0, 0.35)
     ao = mg.height_to_ao(height, radii=(2, 5, 11), strength=0.9, floor=0.45)
     return dict(height=height, albedo=albedo, roughness=roughness,
                 metallic=metallic, ao=ao)
@@ -413,12 +427,14 @@ def _uniform(size, seed, cloth_a, cloth_b, accent, webbing):
 
 def uniform_ranger(size, seed=127):
     """Faction A — Ridge Rangers. Olive drab, amber accent."""
-    return _uniform(size, seed, HEX("5C6B4A"), HEX("6E7C58"), HEX("C9A227"), HEX("4A3D2E"))
+    return _uniform(size, seed, HEX("5C6B4A"), HEX("6E7C58"), HEX("C9A227"),
+                    HEX("4A3D2E"), HEX("A8825E"))
 
 
 def uniform_legion(size, seed=131):
     """Faction B — Iron Legion. Field grey, deep red accent."""
-    return _uniform(size, seed, HEX("4A4F4A"), HEX("5A5F58"), HEX("8C2F2F"), HEX("32302B"))
+    return _uniform(size, seed, HEX("4A4F4A"), HEX("5A5F58"), HEX("8C2F2F"),
+                    HEX("32302B"), HEX("B08A66"))
 
 
 def gunmetal(size, seed=149):
