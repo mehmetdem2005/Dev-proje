@@ -1,0 +1,227 @@
+{
+  "size": 512,
+  "convention": "normal=OpenGL green-up, orm=R:AO G:rough B:metal",
+  "materials": [
+    {
+      "name": "rock_granite",
+      "size": 512,
+      "seconds": 1.29,
+      "roughness_range": [
+        0.573,
+        0.952
+      ],
+      "metallic_mean": 0.0,
+      "ao_min": 0.3,
+      "maps": [
+        "albedo",
+        "normal",
+        "orm",
+        "height"
+      ]
+    },
+    {
+      "name": "cliff_strata",
+      "size": 512,
+      "seconds": 0.74,
+      "roughness_range": [
+        0.693,
+        0.956
+      ],
+      "metallic_mean": 0.0,
+      "ao_min": 0.25,
+      "maps": [
+        "albedo",
+        "normal",
+        "orm",
+        "height"
+      ]
+    },
+    {
+      "name": "ground_rocky",
+      "size": 512,
+      "seconds": 0.96,
+      "roughness_range": [
+        0.74,
+        0.88
+      ],
+      "metallic_mean": 0.0,
+      "ao_min": 0.38,
+      "maps": [
+        "albedo",
+        "normal",
+        "orm",
+        "height"
+      ]
+    },
+    {
+      "name": "grass_highland",
+      "size": 512,
+      "seconds": 0.93,
+      "roughness_range": [
+        0.84,
+        0.9
+      ],
+      "metallic_mean": 0.0,
+      "ao_min": 0.45,
+      "maps": [
+        "albedo",
+        "normal",
+        "orm",
+        "height"
+      ]
+    },
+    {
+      "name": "soil_trench",
+      "size": 512,
+      "seconds": 0.51,
+      "roughness_range": [
+        0.687,
+        0.88
+      ],
+      "metallic_mean": 0.0,
+      "ao_min": 0.3,
+      "maps": [
+        "albedo",
+        "normal",
+        "orm",
+        "height"
+      ]
+    },
+    {
+      "name": "sandbag_burlap",
+      "size": 512,
+      "seconds": 0.62,
+      "roughness_range": [
+        0.86,
+        0.92
+      ],
+      "metallic_mean": 0.0,
+      "ao_min": 0.4,
+      "maps": [
+        "albedo",
+        "normal",
+        "orm",
+        "height"
+      ]
+    },
+    {
+      "name": "wood_plank",
+      "size": 512,
+      "seconds": 0.55,
+      "roughness_range": [
+        0.82,
+        0.96
+      ],
+      "metallic_mean": 0.0,
+      "ao_min": 0.35,
+      "maps": [
+        "albedo",
+        "normal",
+        "orm",
+        "height"
+      ]
+    },
+    {
+      "name": "metal_corrugated",
+      "size": 512,
+      "seconds": 0.47,
+      "roughness_range": [
+        0.42,
+        0.93
+      ],
+      "metallic_mean": 0.64,
+      "ao_min": 0.5,
+      "maps": [
+        "albedo",
+        "normal",
+        "orm",
+        "height"
+      ]
+    },
+    {
+      "name": "concrete_bunker",
+      "size": 512,
+      "seconds": 0.96,
+      "roughness_range": [
+        0.739,
+        0.98
+      ],
+      "metallic_mean": 0.0,
+      "ao_min": 0.38,
+      "maps": [
+        "albedo",
+        "normal",
+        "orm",
+        "height"
+      ]
+    },
+    {
+      "name": "crate_wood",
+      "size": 512,
+      "seconds": 0.46,
+      "roughness_range": [
+        0.84,
+        0.94
+      ],
+      "metallic_mean": 0.0,
+      "ao_min": 0.38,
+      "maps": [
+        "albedo",
+        "normal",
+        "orm",
+        "height"
+      ]
+    },
+    {
+      "name": "uniform_ranger",
+      "size": 512,
+      "seconds": 0.55,
+      "roughness_range": [
+        0.68,
+        0.94
+      ],
+      "metallic_mean": 0.044,
+      "ao_min": 0.45,
+      "maps": [
+        "albedo",
+        "normal",
+        "orm",
+        "height"
+      ]
+    },
+    {
+      "name": "uniform_legion",
+      "size": 512,
+      "seconds": 0.7,
+      "roughness_range": [
+        0.68,
+        0.94
+      ],
+      "metallic_mean": 0.042,
+      "ao_min": 0.45,
+      "maps": [
+        "albedo",
+        "normal",
+        "orm",
+        "height"
+      ]
+    },
+    {
+      "name": "gunmetal",
+      "size": 512,
+      "seconds": 0.57,
+      "roughness_range": [
+        0.268,
+        0.693
+      ],
+      "metallic_mean": 0.55,
+      "ao_min": 0.55,
+      "maps": [
+        "albedo",
+        "normal",
+        "orm",
+        "height"
+      ]
+    }
+  ]
+}
