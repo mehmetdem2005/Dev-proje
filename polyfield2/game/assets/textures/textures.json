@@ -1,0 +1,23 @@
+{
+  "size": 512,
+  "convention": "normal=OpenGL green-up, orm=R:AO G:rough B:metal",
+  "materials": [
+    {
+      "name": "ground_rocky",
+      "size": 512,
+      "seconds": 1.54,
+      "roughness_range": [
+        0.74,
+        0.88
+      ],
+      "metallic_mean": 0.0,
+      "ao_min": 0.38,
+      "maps": [
+        "albedo",
+        "normal",
+        "orm",
+        "height"
+      ]
+    }
+  ]
+}

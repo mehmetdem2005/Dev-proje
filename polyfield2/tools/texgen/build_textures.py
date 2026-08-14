@@ -26,7 +26,7 @@ from materials import REGISTRY
 from pngio import write_png
 
 DEFAULT_OUT = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "..", "..", "assets", "textures"
+    os.path.dirname(os.path.abspath(__file__)), "..", "..", "game", "assets", "textures"
 )
 
 # Normal strength per material family — flat surfaces need less push than rock.

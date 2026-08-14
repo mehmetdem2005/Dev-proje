@@ -1,0 +1,30 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Script" path="res://scripts/level_builder.gd" id="2_level"]
+[ext_resource type="Script" path="res://scripts/touch_hud.gd" id="3_hud"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="4_player"]
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_main")
+
+[node name="Level" type="Node3D" parent="."]
+script = ExtResource("2_level")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.77, -0.42, 0.48, 0, 0.75, 0.66, -0.63, -0.51, 0.58, 0, 60, 0)
+light_energy = 1.35
+light_color = Color(1, 0.96, 0.88, 1)
+shadow_enabled = true
+directional_shadow_max_distance = 140.0
+
+[node name="Player" parent="." instance=ExtResource("4_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -78, 8, 78)
+
+[node name="HUDLayer" type="CanvasLayer" parent="."]
+
+[node name="HUD" type="Control" parent="HUDLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("3_hud")

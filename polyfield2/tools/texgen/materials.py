@@ -142,11 +142,11 @@ def ground_rocky(size, seed=31):
     stone_mask = np.clip(stones * 2.2 - 0.35, 0.0, 1.0) * (1.0 - gaps * 0.8)
     tone = nl.value_noise(size, 22, seed + 11)
     base = _mix(_rgb(HEX("5E5341"), size), _rgb(HEX("8A7B5C"), size), dirt)
-    base = _mix(base, _rgb(HEX("42392E"), size), gaps * 0.55)
+    base = _mix(base, _rgb(HEX("5A5044"), size), gaps * 0.30)
     base = _mix(base, _mix(_rgb(HEX("7D7970"), size), _rgb(HEX("A29E93"), size), tone),
                 stone_mask * 0.85)
     base = mg.overlay(base, silt, 0.16)
-    albedo = mg.contrast(base, 1.08)
+    albedo = mg.contrast(base, 1.02)
 
     roughness = np.clip(0.88 - stone_mask * 0.14, 0.6, 0.99)
     ao = mg.height_to_ao(height, strength=1.0, floor=0.38)

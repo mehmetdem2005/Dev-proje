@@ -15,9 +15,12 @@ import numpy as np
 from mathutils import Matrix, Vector
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-TEXTURE_DIR = os.path.join(ROOT, "assets", "textures")
-MODEL_DIR = os.path.join(ROOT, "assets", "models")
-MAP_DIR = os.path.join(ROOT, "assets", "map")
+# Generators write straight into the Godot project so there is no copy step
+# and no chance of the engine importing a stale duplicate of an asset.
+ASSET_DIR = os.path.join(ROOT, "game", "assets")
+TEXTURE_DIR = os.path.join(ASSET_DIR, "textures")
+MODEL_DIR = os.path.join(ASSET_DIR, "models")
+MAP_DIR = os.path.join(ASSET_DIR, "map")
 
 
 # ---------------------------------------------------------------------------

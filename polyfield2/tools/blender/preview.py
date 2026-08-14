@@ -73,11 +73,11 @@ def add_sun(rotation=(math.radians(52), 0.0, math.radians(38)), energy=4.0):
     return obj
 
 
-def place_camera(centre, radius, azimuth_deg, elevation_deg, ortho=False):
+def place_camera(centre, radius, azimuth_deg, elevation_deg, ortho=False, zoom=1.0):
     camera_data = bpy.data.cameras.new("cam")
     if ortho:
         camera_data.type = "ORTHO"
-        camera_data.ortho_scale = radius * 2.15
+        camera_data.ortho_scale = radius * 2.15 / zoom
     else:
         camera_data.lens = 42.0
     camera = bpy.data.objects.new("cam", camera_data)
@@ -86,7 +86,7 @@ def place_camera(centre, radius, azimuth_deg, elevation_deg, ortho=False):
 
     azimuth = math.radians(azimuth_deg)
     elevation = math.radians(elevation_deg)
-    distance = radius * (1.15 if ortho else 2.35)
+    distance = radius * (1.15 if ortho else 2.35) / zoom
     camera.location = centre + Vector((
         math.cos(azimuth) * math.cos(elevation) * distance,
         math.sin(azimuth) * math.cos(elevation) * distance,
@@ -97,7 +97,7 @@ def place_camera(centre, radius, azimuth_deg, elevation_deg, ortho=False):
     return camera
 
 
-def render(path, res, samples=24):
+def render(path, res, samples=24, aspect=1.0):
     scene = bpy.context.scene
     # Cycles on CPU, not EEVEE: this container has no EGL/GPU context, and
     # EEVEE cannot initialise without one.
@@ -108,7 +108,7 @@ def render(path, res, samples=24):
     scene.cycles.max_bounces = 4
     scene.cycles.caustics_reflective = False
     scene.cycles.caustics_refractive = False
-    scene.render.resolution_x = res
+    scene.render.resolution_x = int(res * aspect)
     scene.render.resolution_y = res
     scene.render.film_transparent = False
     scene.render.image_settings.file_format = "PNG"
@@ -128,6 +128,8 @@ def main():
     mode = argv[argv.index("--mode") + 1] if "--mode" in argv else "grid"
     res = int(argv[argv.index("--res") + 1]) if "--res" in argv else 640
     clay = "--clay" in argv
+    zoom = float(argv[argv.index("--zoom") + 1]) if "--zoom" in argv else 1.0
+    aspect = float(argv[argv.index("--aspect") + 1]) if "--aspect" in argv else 1.0
     only = argv[argv.index("--only") + 1] if "--only" in argv else None
 
     bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -153,6 +155,7 @@ def main():
         "top": [(0, 89)],
         "hero": [(40, 16)],
         "ridge": [(30, 12), (140, 22)],
+        "turn": [(0, 8), (90, 8), (200, 8)],
     }[mode]
 
     base, ext = os.path.splitext(out)
@@ -160,9 +163,9 @@ def main():
     for index, (azimuth, elevation) in enumerate(views):
         for camera in [o for o in bpy.context.scene.objects if o.type == "CAMERA"]:
             bpy.data.objects.remove(camera, do_unlink=True)
-        place_camera(centre, radius, azimuth, elevation, ortho=(mode == "top"))
+        place_camera(centre, radius, azimuth, elevation, ortho=(mode == "top"), zoom=zoom)
         path = out if len(views) == 1 else f"{base}_{index}{ext}"
-        render(path, res)
+        render(path, res, aspect=aspect)
         written.append(path)
 
     print("PREVIEW:" + ",".join(written))

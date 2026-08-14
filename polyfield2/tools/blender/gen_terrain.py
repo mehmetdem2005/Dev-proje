@@ -19,7 +19,7 @@ import layout
 from noise_shim import fbm_2d
 
 CHUNKS = 4                 # 4x4 grid of terrain chunks
-UV_METRES_PER_TILE = 6.0   # how large one texture tile is on the ground
+UV_METRES_PER_TILE = 3.2   # metres per texture repeat on the ground
 
 
 def splat_weights(xs, ys, height):

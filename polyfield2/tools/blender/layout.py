@@ -47,9 +47,12 @@ OUTCROPS = [
 ]
 
 # Base areas get flattened so spawns are never on a slope.
+# Kept clear of the boundary rim, which starts rising at 0.82 * half-size
+# (~79 m). Bases at +/-78 sat directly on that slope and spawned players
+# inside the hillside.
 BASES = {
-    "ranger": (-78.0, -78.0),
-    "legion": (78.0, 78.0),
+    "ranger": (-64.0, -64.0),
+    "legion": (64.0, 64.0),
 }
 BASE_FLAT_RADIUS = 22.0
 
@@ -242,8 +245,8 @@ ZONES = [
 ]
 
 SPAWNS = {
-    "ranger": [(-84 + i % 4 * 4.0, -84 + i // 4 * 4.0) for i in range(16)],
-    "legion": [(84 - i % 4 * 4.0, 84 - i // 4 * 4.0) for i in range(16)],
+    "ranger": [(-70 + i % 4 * 4.0, -70 + i // 4 * 4.0) for i in range(16)],
+    "legion": [(70 - i % 4 * 4.0, 70 - i // 4 * 4.0) for i in range(16)],
 }
 
 
@@ -427,7 +430,8 @@ def export_json(path=None):
     }
 
     path = path or os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "..", "..", "assets", "map", "layout.json")
+        os.path.dirname(os.path.abspath(__file__)), "..", "..", "game", "assets", "map",
+        "layout.json")
     path = os.path.abspath(path)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as handle:
