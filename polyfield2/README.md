@@ -110,6 +110,39 @@ Level build cost at startup: ~200 ms for 16 terrain chunks, 190 rocks, 114
 trench bays, 47 sandbag sets, 25 props and 5 zones. Repeated geometry is drawn
 through `MultiMeshInstance3D`, which keeps the whole scene at ~154 draw calls.
 
+## APK
+
+```bash
+export ANDROID_SDK_ROOT=/path/to/android-sdk
+export GODOT_ANDROID_KEYSTORE=/path/to/debug.keystore
+tools/export_apk.sh              # debug, installable by sideload
+tools/export_apk.sh --release    # smaller, still debug-signed here
+```
+
+The script preflights the three things that actually go wrong — missing export
+templates, missing Android build-tools, missing keystore — and prints the
+exact command to fix each, then verifies the signature and manifest of what it
+produced.
+
+Uses Godot's prebuilt Android template rather than a Gradle build, so the only
+Android toolchain pieces needed are `apksigner` and `zipalign` from
+build-tools; no Gradle, no NDK.
+
+| | |
+| --- | --- |
+| Package | `com.mehmetdem.polyfield2` |
+| Label | Polyfield 2 |
+| Version | 0.1.0 (code 1) |
+| ABI | arm64-v8a only |
+| Target SDK | 36 |
+| Renderer | Vulkan, Forward Mobile |
+| Size | ~45 MB debug, ~43 MB release |
+| Permissions | VIBRATE, WAKE_LOCK — no network, no storage |
+
+**The keystore is a debug key.** It is fine for sideloading and testing and is
+not usable as a Play Store upload key; generate a real one before publishing.
+`build/` is gitignored — a 45 MB binary does not belong in the repository.
+
 ## Verification
 
 Two harnesses, both headless:

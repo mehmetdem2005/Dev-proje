@@ -1,11 +1,12 @@
 72322a848ab928aa5c89f0cb78209805
-::res://::1786717013
+::res://::1786815786
+export_presets.cfg::TextFile::-1::1786815850::0::1::::<><><>0<>0<><>::
 icon.svg::CompressedTexture2D::8627338691174814786::1786716995::1786717013::1::::<><><>0<>0<>7ee5fdff5569401923c908accd0203d8<>res://.godot/imported/icon.svg-218a8f2b3041327d8a5756f3a245f83b.ctex::
 ::res://assets/::1786716610
 ::res://assets/map/::1786716540
 layout.json::JSON::-1::1786717477::0::1::::<><><>0<>0<><>::
 weapons.json::JSON::-1::1786716540::0::1::::<><><>0<>0<><>::
-::res://assets/models/::1786717494
+::res://assets/models/::1786718331
 fortifications.glb::PackedScene::7929616487045623906::1786716096::1786717015::1::::<><><>0<>0<>9b918230ca06d5d416b16fa4eecf6de4<>res://.godot/imported/fortifications.glb-4d84b8c5fcba69a1c4eeb2234b343a66.scn::
 props.glb::PackedScene::574121512480240129::1786716097::1786717015::1::::<><><>0<>0<>a913ed8bbce1deca783cf156c07bc822<>res://.godot/imported/props.glb-af4a5bf58dc290a3d20daaf9566829f6.scn::
 rocks.glb::PackedScene::3807492367580943934::1786715731::1786717015::1::::<><><>0<>0<>19b44f792ff87fbc0afec7df12b60286<>res://.godot/imported/rocks.glb-fd97abb033bbc3c4b4dc53848385b4c8.scn::
@@ -15,7 +16,7 @@ terrain_ridgeline.glb::PackedScene::8841481809969973101::1786717476::1786717494:
 terrain_ridgeline_ground_rocky_albedo.png::CompressedTexture2D::4091304221528325883::1786717014::1786717318::1::::<><><>0<>0<>1fb0075196332b91cd376393c4723520<>res://.godot/imported/terrain_ridgeline_ground_rocky_albedo.png-846dbedf2df4986eb7e4b3b3c30794c8.ctex::
 terrain_ridgeline_ground_rocky_orm.png::CompressedTexture2D::1722851879758781240::1786717014::1786717318::1::::<><><>0<>0<>af6ed0bcedd86ec2f7c8e7853dcd3205<>res://.godot/imported/terrain_ridgeline_ground_rocky_orm.png-123c061d20a01da9af66f5d0e3133ae1.ctex::
 weapons.glb::PackedScene::1211436751910256589::1786716540::1786717014::1::::<><><>0<>0<>9cfe059793db5f1aa5c46ef5bc9b9c9e<>res://.godot/imported/weapons.glb-1ad9d88c18d682d1d68dc937d91edb0c.scn::
-::res://assets/textures/::1786717494
+::res://assets/textures/::1786718331
 cliff_strata_albedo.png::CompressedTexture2D::6419748259439698094::1786714937::1786717014::1::::<><><>0<>0<>ee098c114189fc1f4e246ad862d4e3b6<>res://.godot/imported/cliff_strata_albedo.png-ab7bd6524ec9f122ad7b05064e22b8ee.ctex::
 cliff_strata_height.png::CompressedTexture2D::2600735747141425099::1786714937::1786717014::1::::<><><>0<>0<>5519cad440bb046afc08c152a3a28e85<>res://.godot/imported/cliff_strata_height.png-5e5075034dcd9511a658230e39ab96be.ctex::
 cliff_strata_normal.png::CompressedTexture2D::4046519708903767530::1786714937::1786717014::1::::<><><>0<>0<>1a77ec7a988b1ee97ed3ecac0ffd76fb<>res://.godot/imported/cliff_strata_normal.png-e5d51a9d43d6bbdeac0b06b88518322e.ctex::
@@ -81,6 +82,6 @@ material_library.gd::GDScript::7965148099535531996::1786716734::0::1::::<>Node<>
 player.gd::GDScript::4798770689315522144::1786717473::0::1::::<>CharacterBody3D<><>0<>0<><>::
 screenshot.gd::GDScript::7047022423425801809::1786718112::0::1::::<>Node<><>0<>0<><>::
 soldier.gd::GDScript::1442459700906230795::1786716953::0::1::::<>CharacterBody3D<><>0<>0<><>::
-touch_hud.gd::GDScript::5515554236902803949::1786716917::0::1::::<>Control<><>0<>0<><>::
+touch_hud.gd::GDScript::5515554236902803949::1786815772::0::1::::<>Control<><>0<>0<><>::
 ::res://shaders/::1786717013
 terrain_splat.gdshader::Shader::5432919977249400463::1786717473::0::1::::<><><>0<>0<><>::

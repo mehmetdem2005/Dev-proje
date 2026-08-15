@@ -125,7 +125,6 @@ func _build_ui() -> void:
 	}
 	var sizes := {"fire": 108.0, "aim": 82.0}
 	for action: String in layout:
-		var button := TouchScreenButton.new()
 		var size: float = sizes.get(action, 72.0)
 		var control := Button.new()
 		control.name = action
@@ -140,7 +139,6 @@ func _build_ui() -> void:
 		control.button_up.connect(_on_button_up.bind(action))
 		add_child(control)
 		_buttons[action] = control
-		button.queue_free()
 
 	# --- crosshair ------------------------------------------------------------
 	var crosshair := Label.new()
