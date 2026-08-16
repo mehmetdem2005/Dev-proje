@@ -60,13 +60,33 @@ func get_team() -> String:
 func _ready() -> void:
 	add_to_group("players")
 	_weapons = _weapon_table()
-	_hud = get_tree().get_first_node_in_group("hud")
-	if _hud != null and _hud.has_signal("weapon_cycle_requested"):
-		_hud.weapon_cycle_requested.connect(cycle_weapon)
+	_ensure_hud()
 	_equip(0)
 	health_changed.emit(health)
 	if DisplayServer.get_name() != "headless":
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+## Resolve the HUD lazily instead of once in _ready().
+##
+## The player is declared before the HUD layer in main.tscn, so at the moment
+## _ready() runs the HUD has not yet added itself to its group and the lookup
+## returns null — which silently killed every touch input: fire, aim, crouch,
+## jump and look all went nowhere on a phone. Resolving on demand makes the
+## wiring independent of scene ordering, so this cannot regress by someone
+## moving a node.
+func _ensure_hud() -> bool:
+	if _hud != null and is_instance_valid(_hud):
+		return true
+	_hud = get_tree().get_first_node_in_group("hud")
+	if _hud == null:
+		return false
+	if _hud.has_signal("weapon_cycle_requested") \
+			and not _hud.weapon_cycle_requested.is_connected(cycle_weapon):
+		_hud.weapon_cycle_requested.connect(cycle_weapon)
+	_hud.call("set_weapon_scoped", bool(_weapon().get("scoped", false)))
+	print("[Player] HUD connected")
+	return true
 
 
 func _weapon_table() -> Array[Dictionary]:
@@ -107,7 +127,7 @@ func _gather_input() -> void:
 	_crouching = Input.is_action_pressed("crouch")
 	_aiming = Input.is_action_pressed("aim")
 
-	if _hud != null:
+	if _ensure_hud():
 		var stick: Vector2 = _hud.move_vector
 		if stick.length() > 0.05:
 			_move_input = Vector2(stick.x, -stick.y)
