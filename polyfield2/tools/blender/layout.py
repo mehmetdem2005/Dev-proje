@@ -102,12 +102,26 @@ def height_field(size=MAP_SIZE, grid=GRID, seed=SEED):
         local = float(np.median(height[distance < BASE_FLAT_RADIUS * 1.4])) - 1.5
         height = height * blend + local * (1.0 - blend)
 
-    # Boundary: a rocky rim, not a bathtub wall. It starts later, rises over a
-    # shorter run, and is modulated by noise so its crest line stays irregular.
+    # Boundary mountains.
+    #
+    # These were smooth grey lumps: one soft noise term times a smooth ramp,
+    # which produces dunes, not mountains. Real ranges have a jagged crest
+    # line, faces steeper than their base, and side spurs running off them.
+    # Three terms do that:
+    #   * a ridged multifractal at two scales for the crest and its spurs,
+    #   * an exponent on the ramp so the face steepens as it climbs,
+    #   * a per-peak modulation so the crest height varies along its length.
     edge = np.maximum(np.abs(xs), np.abs(ys)) / (size * 0.5)
-    rim = np.clip((edge - 0.82) / 0.18, 0.0, 1.0) ** 1.7
-    rim_noise = 0.65 + 0.7 * ridged_2d(xs, ys, frequency=0.03, octaves=3, seed=seed + 11)
-    height += rim * rim_noise * 19.0
+    rim = np.clip((edge - 0.78) / 0.22, 0.0, 1.0)
+
+    crest = ridged_2d(xs, ys, frequency=0.021, octaves=5, seed=seed + 11) ** 1.6
+    spurs = ridged_2d(xs, ys, frequency=0.055, octaves=4, seed=seed + 17) ** 2.0
+    peaks = 0.55 + 0.9 * fbm_2d(xs, ys, frequency=0.010, octaves=3, seed=seed + 23)
+
+    # rim**2.4 keeps the foot gentle and the upper face steep.
+    height += (rim ** 2.4) * peaks * (crest * 26.0 + spurs * 9.0)
+    # A hard shoulder right at the border stops anyone walking out of the map.
+    height += np.clip((edge - 0.94) / 0.06, 0.0, 1.0) ** 2 * 22.0
 
     return xs, ys, height
 

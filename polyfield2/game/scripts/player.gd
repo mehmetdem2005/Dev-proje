@@ -59,6 +59,8 @@ func get_team() -> String:
 
 func _ready() -> void:
 	add_to_group("players")
+	# Bots find targets through this group; without it they never see the player.
+	add_to_group("combatants")
 	_weapons = _weapon_table()
 	_ensure_hud()
 	_equip(0)
@@ -403,3 +405,5 @@ func publish_state() -> void:
 func take_damage(amount: float, _source: Node) -> void:
 	health = maxf(0.0, health - amount)
 	health_changed.emit(health)
+	if _hud != null:
+		_hud.call("flash_hit")

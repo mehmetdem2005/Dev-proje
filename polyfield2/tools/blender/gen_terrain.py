@@ -29,7 +29,10 @@ def splat_weights(xs, ys, height):
     slope = np.sqrt(gx ** 2 + gy ** 2)
 
     # Steep faces are bare rock, and so are the outcrop caps.
-    rock = np.clip((slope - 0.42) / 0.5, 0.0, 1.0) ** 0.8
+    # Anything steeper than a scree slope is bare rock. The old threshold left
+    # the boundary mountains painted in gravel, which is why they read as soft
+    # grey heaps rather than stone.
+    rock = np.clip((slope - 0.30) / 0.35, 0.0, 1.0) ** 0.7
     for cx, cy, _amount, radius in layout.OUTCROPS:
         distance = np.sqrt((xs - cx) ** 2 + (ys - cy) ** 2) / (radius * 0.9)
         rock = np.maximum(rock, np.clip(1.2 - distance ** 2, 0.0, 1.0))
@@ -49,7 +52,9 @@ def splat_weights(xs, ys, height):
     # Grass takes whatever is left, thinned by a dryness field so the ridge
     # never reads as a uniform lawn.
     dryness = fbm_2d(xs, ys, frequency=0.018, octaves=4, seed=layout.SEED + 404)
+    # Grass cannot hold on a steep face either.
     grass = np.clip(1.0 - rock - gravel, 0.0, 1.0) * np.clip(dryness * 1.9 - 0.35, 0.0, 1.0)
+    grass *= np.clip(1.0 - (slope - 0.35) / 0.4, 0.0, 1.0)
     gravel = np.maximum(gravel, np.clip(1.0 - rock - grass, 0.0, 1.0))
 
     total = np.maximum(rock + grass + gravel, 1e-6)

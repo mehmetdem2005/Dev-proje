@@ -165,10 +165,12 @@ change that quietly doubles the draw calls is visible immediately.
 
 ## Known gaps
 
+- **No sound.** Nothing is downloaded or wired yet; this is the largest
+  remaining gap.
+
 - Soldier proportions read correctly but the legs are still slightly long
   against the torso; a proportion pass would improve the silhouette.
 - No LOD chain is authored for the meshes — Godot's automatic mesh LOD is
   doing the work. Hand-authored LODs are the next real performance win.
-- Bots navigate by straight-line steering, not a navmesh, so they will press
-  against a boulder rather than walk around it.
-- No sound.
+- Bots steer with whisker rays and separation, not a navmesh. They avoid what
+  is directly ahead but will not path around a large obstacle.

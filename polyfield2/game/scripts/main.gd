@@ -3,10 +3,12 @@ extends Node3D
 ## and runs Territory Control scoring.
 
 const TICKET_RATE := 1.0          ## points per held zone per second
-const BOT_COUNT := 14
+
 const SOLDIER_SCENE := "res://scenes/soldier.tscn"
 
 var scores := {"ranger": 0.0, "legion": 0.0}
+
+var _pause_layer: CanvasLayer
 
 @onready var _level: Node3D = $Level
 @onready var _hud: Control = $HUDLayer/HUD
@@ -18,6 +20,11 @@ func _ready() -> void:
 	_level.level_ready.connect(_on_level_ready)
 	_configure_environment()
 	_level.build()
+
+	_hud.pause_requested.connect(_toggle_pause)
+	_hud.set_show_fps(Settings.show_fps)
+	Settings.apply_to_scene($Sun, MaterialLibrary.terrain_material())
+	_build_pause_menu()
 
 	var shot := Node.new()
 	shot.name = "Screenshot"
@@ -32,6 +39,56 @@ func _on_level_ready(stats: Dictionary) -> void:
 	print("[Main] level ready: %s" % stats)
 	print("[Main] player at %s, %d bots" % [_player.global_position,
 		get_tree().get_nodes_in_group("soldiers").size()])
+
+
+## Pause overlay. Built here rather than in the HUD because it has to stop the
+## tree, and the HUD keeps running so its buttons stay live.
+func _build_pause_menu() -> void:
+	_pause_layer = CanvasLayer.new()
+	_pause_layer.layer = 10
+	_pause_layer.visible = false
+	add_child(_pause_layer)
+
+	var dim := ColorRect.new()
+	dim.color = Color(0.04, 0.05, 0.07, 0.82)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_pause_layer.add_child(dim)
+
+	var centre := CenterContainer.new()
+	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_pause_layer.add_child(centre)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 14)
+	centre.add_child(column)
+
+	var heading := Label.new()
+	heading.text = "DURAKLATILDI"
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	heading.add_theme_font_size_override("font_size", 36)
+	column.add_child(heading)
+
+	for entry in [["DEVAM ET", "resume"], ["ANA MENÜ", "menu"]]:
+		var button := Button.new()
+		button.text = str(entry[0])
+		button.custom_minimum_size = Vector2(280, 56)
+		button.add_theme_font_size_override("font_size", 22)
+		if str(entry[1]) == "resume":
+			button.pressed.connect(_toggle_pause)
+		else:
+			button.pressed.connect(func() -> void:
+				get_tree().paused = false
+				get_tree().change_scene_to_file("res://scenes/menu.tscn"))
+		column.add_child(button)
+
+	# The overlay must keep processing while the tree is paused, or its own
+	# resume button would be dead.
+	_pause_layer.process_mode = Node.PROCESS_MODE_WHEN_PAUSED
+
+
+func _toggle_pause() -> void:
+	var paused := not get_tree().paused
+	get_tree().paused = paused
+	_pause_layer.visible = paused
 
 
 func _configure_environment() -> void:
@@ -105,7 +162,7 @@ func _spawn_bots() -> void:
 	container.name = "Soldiers"
 	add_child(container)
 
-	for index in BOT_COUNT:
+	for index in int(Settings.preset()["bots"]):
 		var team := "legion" if index % 2 == 0 else "ranger"
 		var points: Array = _level.spawn_points(team)
 		if points.is_empty():
@@ -129,5 +186,4 @@ func _process(delta: float) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if \
-			Input.mouse_mode == Input.MOUSE_MODE_CAPTURED else Input.MOUSE_MODE_CAPTURED
+		_toggle_pause()
