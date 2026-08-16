@@ -324,6 +324,84 @@ def rock_scatter(xs, ys, height, count=190, seed=SEED):
     return placements
 
 
+def vegetation_scatter(xs, ys, height, seed=SEED):
+    """Scatter trees, bushes and grass.
+
+    Trees avoid the trenches, the capture zones and the spawn aprons: a tree
+    growing out of a firing bay reads as a bug, and one standing on a flag
+    blocks the fight the zone exists to create. They cluster on the lower,
+    gentler ground where trees would actually take hold.
+    """
+    from noise_shim import fbm_2d
+
+    generator = np.random.default_rng(seed + 613)
+    trench_points = [points for _n, points, _d, _w in TRENCHES]
+    step = xs[0, 1] - xs[0, 0]
+    gy, gx = np.gradient(height, step)
+    slope_field = np.sqrt(gx ** 2 + gy ** 2)
+
+    def slope_at(x, y):
+        axis = xs[0]
+        ix = int(np.clip((x - axis[0]) / step, 0, xs.shape[1] - 1))
+        iy = int(np.clip((y - axis[0]) / step, 0, xs.shape[0] - 1))
+        return float(slope_field[iy, ix])
+
+    placements = []
+    targets = {"tree": 150, "bush": 220, "grass": 900}
+    counts = {"tree": 0, "bush": 0, "grass": 0}
+
+    attempts = 0
+    while sum(counts.values()) < sum(targets.values()) and attempts < 40000:
+        attempts += 1
+        kind = ("tree" if counts["tree"] < targets["tree"]
+                else "bush" if counts["bush"] < targets["bush"] else "grass")
+
+        x = generator.uniform(-MAP_SIZE * 0.47, MAP_SIZE * 0.47)
+        y = generator.uniform(-MAP_SIZE * 0.47, MAP_SIZE * 0.47)
+
+        clearance = {"tree": 6.0, "bush": 3.0, "grass": 1.6}[kind]
+        blocked = False
+        for points in trench_points:
+            if _polyline_distance(np.array([[x]]), np.array([[y]]), points)[0, 0] < clearance:
+                blocked = True
+                break
+        if blocked:
+            continue
+        if any(math.hypot(x - zx, y - zy) < (10.0 if kind == "tree" else 4.0)
+               for _n, zx, zy, _r, _o in ZONES):
+            continue
+        if any(math.hypot(x - bx, y - by) < BASE_FLAT_RADIUS * (1.0 if kind == "tree" else 0.7)
+               for bx, by in BASES.values()):
+            continue
+
+        slope = slope_at(x, y)
+        if kind == "tree" and slope > 0.55:
+            continue
+        if kind != "grass" and slope > 0.95:
+            continue
+
+        # Woodland grows in stands, not on a uniform grid.
+        density = fbm_2d(np.array([x]), np.array([y]), frequency=0.017, octaves=3,
+                         seed=seed + 811)[0]
+        threshold = {"tree": 0.52, "bush": 0.44, "grass": 0.32}[kind]
+        if density < threshold and generator.random() > 0.18:
+            continue
+
+        variant = int(generator.integers(0, 3 if kind == "tree" else 2))
+        scale = float(generator.uniform(0.75, 1.35) if kind == "tree"
+                      else generator.uniform(0.7, 1.4))
+        placements.append({
+            "kind": kind, "variant": variant,
+            "x": float(x), "y": float(y),
+            "z": float(sample_height(xs, ys, height, x, y)) - 0.08,
+            "yaw": float(generator.uniform(0, math.tau)),
+            "scale": scale,
+        })
+        counts[kind] += 1
+
+    return placements, counts
+
+
 def prop_scatter(xs, ys, height, seed=SEED):
     """Crates, barrels and antennae — objective dressing, not random litter."""
     generator = np.random.default_rng(seed + 77)
@@ -360,6 +438,8 @@ def export_json(path=None):
     from noise_shim import fbm_2d  # noqa: F401  (import check before heavy work)
 
     xs, ys, height = build_terrain()
+
+    vegetation, veg_counts = vegetation_scatter(xs, ys, height)
 
     trench_modules = []
     for name, points, depth, width in TRENCHES:
@@ -418,6 +498,15 @@ def export_json(path=None):
             }
             for item in rock_scatter(xs, ys, height)
         ],
+        "vegetation": [
+            {
+                "kind": item["kind"], "variant": item["variant"],
+                "position": _to_godot(item["x"], item["y"], item["z"]),
+                "yaw": round(-item["yaw"], 4),
+                "scale": round(item["scale"], 3),
+            }
+            for item in vegetation
+        ],
         "props": [
             {
                 "kind": item["kind"],
@@ -440,5 +529,7 @@ def export_json(path=None):
     print(f"  layout: {len(data['zones'])} zones, {len(trench_modules)} trench modules, "
           f"{len(data['sandbags'])} sandbag sets, {len(data['rocks'])} rocks, "
           f"{len(data['props'])} props")
+    print(f"  vegetation: {veg_counts['tree']} trees, {veg_counts['bush']} bushes, "
+          f"{veg_counts['grass']} grass tufts")
     print(f"  terrain height range {height.min():.1f} .. {height.max():.1f} m")
     return data

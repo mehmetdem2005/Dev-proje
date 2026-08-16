@@ -1,8 +1,14 @@
 # Polyfield 2 — Ridgeline
 
-Godot 4.6.3 (Mobile renderer) first-person skirmish prototype, with every
-texture, mesh, rig and animation generated from source in this repository.
-Nothing is downloaded, purchased or copied from another game.
+Godot 4.6.3 (Mobile renderer) first-person skirmish prototype.
+
+**Geometry** — terrain, rocks, fortifications, props, weapons, trees and the
+rigged soldier — is modelled in Blender from scripts in this repository.
+**Surface textures** are downloaded CC0 PBR sets from
+[ambientCG](https://ambientcg.com/) and repacked by `tools/fetch_assets.py`;
+see `game/assets/textures/SOURCES.md` for the per-material provenance. The one
+texture still generated here is the alpha-cut foliage atlas, because the CC0
+libraries ship tiling surfaces rather than masked leaf cards.
 
 ```
 polyfield2/
@@ -30,30 +36,29 @@ is seeded, so a rebuild reproduces the same assets.
 
 ## What gets generated
 
-### Textures — `tools/texgen`
+### Textures — `tools/fetch_assets.py`
 
-Thirteen material sets, each written as four maps:
+Nineteen CC0 material sets, each repacked into three maps:
 
 | Map | Contents | Colour space |
 | --- | --- | --- |
 | `<name>_albedo.png` | base colour | sRGB |
 | `<name>_normal.png` | tangent-space normal, OpenGL convention (green up) | linear |
 | `<name>_orm.png` | R = AO, G = roughness, B = metallic | linear |
-| `<name>_height.png` | height field the other three were derived from | linear |
 
 The ORM pack is not a convenience: `ORMMaterial3D` reads all three channels
 from one sampler, which on the Mobile renderer is worth more than any amount
 of separate map authoring.
 
-Materials: `rock_granite`, `cliff_strata`, `ground_rocky`, `grass_highland`,
-`soil_trench`, `sandbag_burlap`, `wood_plank`, `metal_corrugated`,
-`concrete_bunker`, `crate_wood`, `uniform_ranger`, `uniform_legion`,
-`gunmetal`.
+Sets whose source hue is wrong for the game (uniforms, sandbags, skin, leather)
+are desaturated to luminance and then tinted to the palette. Multiplying a red
+canvas by olive gives brown; stripping the hue first lands on the intended
+colour every time.
 
-Everything tiles seamlessly. The noise library uses a 3×3-neighbourhood Worley
-implementation with F2−F1 cell edges — that is what turns cellular noise into
-fracture networks rather than blobs, and it made generation about twenty times
-faster than a brute-force distance scan.
+`tools/texgen/` still holds the original procedural generator and the noise
+library. It is no longer the source of the shipped ground textures, but it
+builds the foliage atlas and remains the fallback if a download source ever
+goes away.
 
 ### Map — `tools/blender/layout.py`
 

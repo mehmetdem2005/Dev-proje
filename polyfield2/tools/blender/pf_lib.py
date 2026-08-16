@@ -277,10 +277,14 @@ def make_material(name, texture_dir=None, uv_scale=1.0):
     mapping.inputs["Scale"].default_value = (uv_scale, uv_scale, 1.0)
     tree.links.new(coords.outputs["UV"], mapping.inputs["Vector"])
 
-    def texture(suffix, non_color, y):
+    def texture(suffix, non_color, y, required=True):
         path = os.path.join(texture_dir, f"{name}_{suffix}.png")
         if not os.path.exists(path):
-            raise FileNotFoundError(f"missing texture map: {path}")
+            if required:
+                raise FileNotFoundError(f"missing texture map: {path}")
+            # Optional maps are genuinely optional: alpha-cut foliage cards
+            # carry no normal map, and demanding one would block the material.
+            return None
         node = tree.nodes.new("ShaderNodeTexImage")
         node.location = (-480, y)
         node.image = _image(path, non_color)
@@ -292,17 +296,28 @@ def make_material(name, texture_dir=None, uv_scale=1.0):
     tree.links.new(albedo.outputs["Color"], bsdf.inputs["Base Color"])
 
     orm = texture("orm", True, -40)
+    if orm is None:
+        raise FileNotFoundError(f"missing ORM map for material '{name}'")
     separate = tree.nodes.new("ShaderNodeSeparateColor")
     separate.location = (-200, -40)
     tree.links.new(orm.outputs["Color"], separate.inputs["Color"])
     tree.links.new(separate.outputs["Green"], bsdf.inputs["Roughness"])
     tree.links.new(separate.outputs["Blue"], bsdf.inputs["Metallic"])
 
-    normal_tex = texture("normal", True, -360)
-    normal_map = tree.nodes.new("ShaderNodeNormalMap")
-    normal_map.location = (-200, -360)
-    tree.links.new(normal_tex.outputs["Color"], normal_map.inputs["Color"])
-    tree.links.new(normal_map.outputs["Normal"], bsdf.inputs["Normal"])
+    normal_tex = texture("normal", True, -360, required=False)
+    if normal_tex is not None:
+        normal_map = tree.nodes.new("ShaderNodeNormalMap")
+        normal_map.location = (-200, -360)
+        tree.links.new(normal_tex.outputs["Color"], normal_map.inputs["Color"])
+        tree.links.new(normal_map.outputs["Normal"], bsdf.inputs["Normal"])
+
+    # Cutout foliage: the albedo's alpha is the mask, and the material has to
+    # be marked clipped or the glTF exporter writes it out fully opaque.
+    if albedo.image is not None and albedo.image.depth in (32, 64):
+        tree.links.new(albedo.outputs["Alpha"], bsdf.inputs["Alpha"])
+        material.blend_method = "CLIP"
+        material.alpha_threshold = 0.5
+        material.use_backface_culling = False
 
     gltf_out = tree.nodes.new("ShaderNodeGroup")
     gltf_out.node_tree = _gltf_output_group()

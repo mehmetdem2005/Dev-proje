@@ -11,6 +11,7 @@ const TERRAIN_PATH := "res://assets/models/terrain_ridgeline.glb"
 const ROCKS_PATH := "res://assets/models/rocks.glb"
 const FORTS_PATH := "res://assets/models/fortifications.glb"
 const PROPS_PATH := "res://assets/models/props.glb"
+const VEGETATION_PATH := "res://assets/models/vegetation.glb"
 
 signal level_ready(stats: Dictionary)
 
@@ -39,6 +40,7 @@ func build() -> void:
 	_build_trenches()
 	_build_sandbags()
 	_build_props()
+	_build_vegetation()
 	_build_zones()
 
 	stats["build_ms"] = Time.get_ticks_msec() - started
@@ -297,6 +299,77 @@ func _build_props() -> void:
 		placed += 1
 
 	stats["props"] = placed
+
+
+## Trees, bushes and grass. Density scales with the quality preset, because
+## 1270 alpha-cut instances is the difference between 60 and 30 fps on a phone
+## and is the first thing that should go when frames are short.
+func _build_vegetation() -> void:
+	var meshes := _meshes_from(VEGETATION_PATH)
+	if meshes.is_empty():
+		return
+
+	var density := float(Settings.preset()["vegetation"])
+	var species := {
+		"tree": ["tree_pine", "tree_oak", "tree_scrub"],
+		"bush": ["bush_low", "bush_tall"],
+		"grass": ["grass_tuft"],
+	}
+	var grouped: Dictionary = {}
+	var trunk_shape := CylinderShape3D.new()
+	trunk_shape.radius = 0.34
+	trunk_shape.height = 5.0
+
+	var generator := RandomNumberGenerator.new()
+	generator.seed = 20260814
+
+	for entry: Dictionary in layout.get("vegetation", []):
+		var kind: String = str(entry.get("kind", ""))
+		if not species.has(kind):
+			continue
+		# Thin by density rather than truncating the list, so what survives is
+		# still spread across the whole map.
+		if generator.randf() > density:
+			continue
+
+		var names: Array = species[kind]
+		var variant: int = int(entry.get("variant", 0)) % names.size()
+		var position := _vector(entry.get("position", [0, 0, 0]))
+		var scale := float(entry.get("scale", 1.0))
+		var basis := Basis.IDENTITY.rotated(Vector3.UP, float(entry.get("yaw", 0.0)))
+		var transform := Transform3D(basis.scaled(Vector3(scale, scale, scale)), position)
+
+		# A tree is two meshes (bark trunk, cutout foliage) that must be
+		# instanced in lockstep or the crown floats away from its trunk.
+		var parts: Array[String] = []
+		if kind == "tree":
+			parts = ["%s_trunk" % names[variant], "%s_leaves" % names[variant]]
+			_add_collision(trunk_shape, Transform3D(basis, position + Vector3.UP * 2.5))
+		else:
+			parts = [names[variant]]
+
+		for part: String in parts:
+			if not meshes.has(part):
+				continue
+			if not grouped.has(part):
+				grouped[part] = [] as Array[Transform3D]
+			grouped[part].append(transform)
+
+	var placed := 0
+	for part: String in grouped:
+		var material_name := "leaf" if part.ends_with("_leaves") or part.begins_with("bush") \
+			or part.begins_with("grass") else "bark"
+		var instance := _multimesh(meshes[part], grouped[part], "Veg_%s" % part,
+			MaterialLibrary.get_material(material_name))
+		# Foliage casting shadows doubles its cost for very little; the trunks
+		# still cast, which is what grounds the tree.
+		if material_name == "leaf":
+			instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		instance.visibility_range_end = float(Settings.preset()["prop_distance"])
+		instance.visibility_range_end_margin = 12.0
+		instance.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+		placed += grouped[part].size()
+	stats["vegetation"] = placed
 
 
 func _build_zones() -> void:

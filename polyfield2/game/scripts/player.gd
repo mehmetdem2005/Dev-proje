@@ -35,6 +35,7 @@ var _recoil_velocity: Vector2 = Vector2.ZERO
 var _fire_cooldown: float = 0.0
 var _reload_timer: float = 0.0
 var _aiming: bool = false
+var _scoped: bool = false
 
 var _weapons: Array[Dictionary] = []
 var _weapon_index: int = 0
@@ -55,6 +56,8 @@ func _ready() -> void:
 	add_to_group("players")
 	_weapons = _weapon_table()
 	_hud = get_tree().get_first_node_in_group("hud")
+	if _hud != null and _hud.has_signal("weapon_cycle_requested"):
+		_hud.weapon_cycle_requested.connect(cycle_weapon)
 	_equip(0)
 	health_changed.emit(health)
 	if DisplayServer.get_name() != "headless":
@@ -67,13 +70,13 @@ func _weapon_table() -> Array[Dictionary]:
 	return [
 		{"id": "wpn_rifle", "label": "Rifle", "interval": 0.85, "damage": 48.0,
 		 "mag": 5, "reserve": 40, "recoil": Vector2(0.030, 0.010), "spread": 0.004,
-		 "auto": false, "reload": 2.4},
+		 "auto": false, "reload": 2.4, "scoped": true, "scope_fov": 20.0},
 		{"id": "wpn_smg", "label": "SMG", "interval": 0.085, "damage": 16.0,
 		 "mag": 32, "reserve": 190, "recoil": Vector2(0.012, 0.006), "spread": 0.016,
 		 "auto": true, "reload": 1.9},
 		{"id": "wpn_lmg", "label": "LMG", "interval": 0.11, "damage": 24.0,
 		 "mag": 50, "reserve": 200, "recoil": Vector2(0.016, 0.008), "spread": 0.020,
-		 "auto": true, "reload": 4.2},
+		 "auto": true, "reload": 4.2, "scoped": false},
 		{"id": "wpn_pistol", "label": "Pistol", "interval": 0.20, "damage": 22.0,
 		 "mag": 8, "reserve": 56, "recoil": Vector2(0.018, 0.008), "spread": 0.009,
 		 "auto": false, "reload": 1.5},
@@ -90,7 +93,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("next_weapon"):
 		_equip((_weapon_index + 1) % _weapons.size())
 	elif event.is_action_pressed("reload"):
-		_begin_reload()
+		begin_reload()
 
 
 func _gather_input() -> void:
@@ -123,8 +126,16 @@ func _physics_process(delta: float) -> void:
 
 func _apply_look(delta: float) -> void:
 	if _look_input != Vector2.ZERO:
-		rotate_y(-_look_input.x)
-		_pitch = clampf(_pitch - _look_input.y, -1.45, 1.45)
+		var sensitivity := Settings.look_sensitivity
+		var pitch_sign := -1.0 if Settings.invert_look else 1.0
+		# Aiming slows the look, and a scoped shot slows it much further —
+		# without this, a 6x sight is unusable with a thumb.
+		var aim_scale := 1.0
+		if _aiming:
+			aim_scale = 0.32 if _scoped else 0.55
+		rotate_y(-_look_input.x * sensitivity * aim_scale)
+		_pitch = clampf(_pitch - _look_input.y * sensitivity * aim_scale * pitch_sign,
+			-1.45, 1.45)
 		_look_input = Vector2.ZERO
 
 	# Recoil is a spring on top of the aim rather than a permanent offset, so
@@ -191,6 +202,8 @@ func _equip(index: int) -> void:
 	if not weapon.has("loaded"):
 		weapon["loaded"] = int(weapon["mag"])
 	_rebuild_viewmodel(str(weapon["id"]))
+	if _hud != null:
+		_hud.call("set_weapon_scoped", bool(weapon.get("scoped", false)))
 	weapon_changed.emit(str(weapon["label"]), int(weapon["loaded"]), int(weapon["reserve"]))
 
 
@@ -224,7 +237,11 @@ func _rebuild_viewmodel(weapon_id: String) -> void:
 	root.queue_free()
 
 
-func _begin_reload() -> void:
+func cycle_weapon() -> void:
+	_equip((_weapon_index + 1) % _weapons.size())
+
+
+func begin_reload() -> void:
 	var weapon := _weapon()
 	if _reload_timer > 0.0:
 		return
@@ -257,13 +274,26 @@ func _apply_weapon(delta: float) -> void:
 	var rest := Vector3(0.21, -0.19, -0.52)
 	var sighted := Vector3(0.0, -0.10, -0.46)
 	var target := sighted if _aiming else rest
+	# A scoped weapon hides the viewmodel entirely: you are looking down the
+	# sight, not over it.
+	var scoped_now := _aiming and bool(weapon.get("scoped", false))
+	if scoped_now != _scoped and _hud != null:
+		_hud.call("set_weapon_scoped", bool(weapon.get("scoped", false)))
+	_scoped = scoped_now
+	_weapon_pivot.visible = not _scoped
 	_weapon_pivot.position = _weapon_pivot.position.lerp(target, clampf(delta * 12.0, 0.0, 1.0))
-	_camera.fov = lerpf(_camera.fov, 52.0 if _aiming else 75.0, clampf(delta * 10.0, 0.0, 1.0))
+
+	var target_fov := 75.0
+	if _scoped:
+		target_fov = float(weapon.get("scope_fov", 22.0))
+	elif _aiming:
+		target_fov = 52.0
+	_camera.fov = lerpf(_camera.fov, target_fov, clampf(delta * 12.0, 0.0, 1.0))
 
 
 func _fire(weapon: Dictionary) -> void:
 	if int(weapon["loaded"]) <= 0:
-		_begin_reload()
+		begin_reload()
 		return
 
 	weapon["loaded"] = int(weapon["loaded"]) - 1
@@ -280,6 +310,8 @@ func _fire(weapon: Dictionary) -> void:
 		var hit := _muzzle_ray.get_collider()
 		if hit != null and hit.has_method("take_damage"):
 			hit.call("take_damage", float(weapon["damage"]), self)
+			if _hud != null:
+				_hud.call("flash_hit")
 
 
 ## Re-emit the full HUD-facing state. Needed because the player is ready

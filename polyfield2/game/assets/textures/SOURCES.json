@@ -1,0 +1,109 @@
+{
+ "license": "CC0 1.0",
+ "provider": "ambientCG",
+ "materials": {
+  "sandbag_burlap": {
+   "size": 1024,
+   "maps": [
+    "albedo",
+    "normal",
+    "orm"
+   ],
+   "had_normal": true,
+   "had_roughness": true,
+   "had_ao": true,
+   "had_metalness": false,
+   "source": "Fabric064",
+   "tint": [
+    0.78,
+    0.66,
+    0.44
+   ]
+  },
+  "uniform_cloth": {
+   "size": 1024,
+   "maps": [
+    "albedo",
+    "normal",
+    "orm"
+   ],
+   "had_normal": true,
+   "had_roughness": true,
+   "had_ao": true,
+   "had_metalness": false,
+   "source": "Fabric054"
+  },
+  "skin": {
+   "size": 1024,
+   "maps": [
+    "albedo",
+    "normal",
+    "orm"
+   ],
+   "had_normal": true,
+   "had_roughness": true,
+   "had_ao": false,
+   "had_metalness": false,
+   "source": "Fabric031",
+   "tint": [
+    0.86,
+    0.66,
+    0.5
+   ]
+  },
+  "gear_leather": {
+   "size": 1024,
+   "maps": [
+    "albedo",
+    "normal",
+    "orm"
+   ],
+   "had_normal": true,
+   "had_roughness": true,
+   "had_ao": false,
+   "had_metalness": false,
+   "source": "Leather011",
+   "tint": [
+    0.42,
+    0.32,
+    0.22
+   ]
+  },
+  "uniform_ranger": {
+   "size": 1024,
+   "maps": [
+    "albedo",
+    "normal",
+    "orm"
+   ],
+   "had_normal": true,
+   "had_roughness": true,
+   "had_ao": true,
+   "had_metalness": false,
+   "source": "Fabric054",
+   "tint": [
+    0.52,
+    0.6,
+    0.4
+   ]
+  },
+  "uniform_legion": {
+   "size": 1024,
+   "maps": [
+    "albedo",
+    "normal",
+    "orm"
+   ],
+   "had_normal": true,
+   "had_roughness": true,
+   "had_ao": true,
+   "had_metalness": false,
+   "source": "Fabric054",
+   "tint": [
+    0.44,
+    0.47,
+    0.44
+   ]
+  }
+ }
+}
