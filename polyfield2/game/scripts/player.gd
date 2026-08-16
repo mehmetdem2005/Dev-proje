@@ -17,6 +17,7 @@ const TOUCH_SENSITIVITY := 0.0042
 const STAND_HEIGHT := 1.75
 const CROUCH_HEIGHT := 1.15
 const CROUCH_LERP := 9.0
+const VIEWMODEL_PATH := "res://assets/models/viewmodel.glb"
 
 signal weapon_changed(name: String, ammo: int, reserve: int)
 signal ammo_changed(ammo: int, reserve: int)
@@ -36,6 +37,10 @@ var _fire_cooldown: float = 0.0
 var _reload_timer: float = 0.0
 var _aiming: bool = false
 var _scoped: bool = false
+var _viewmodel: Node3D = null
+var _viewmodel_anim: AnimationPlayer = null
+var _viewmodel_state: String = ""
+var _viewmodel_lock: float = 0.0
 
 var _weapons: Array[Dictionary] = []
 var _weapon_index: int = 0
@@ -122,6 +127,7 @@ func _physics_process(delta: float) -> void:
 	_apply_movement(delta)
 	_apply_weapon(delta)
 	_apply_bob(delta)
+	_update_viewmodel(delta)
 
 
 func _apply_look(delta: float) -> void:
@@ -207,38 +213,83 @@ func _equip(index: int) -> void:
 	weapon_changed.emit(str(weapon["label"]), int(weapon["loaded"]), int(weapon["reserve"]))
 
 
-func _rebuild_viewmodel(weapon_id: String) -> void:
-	for child in _weapon_pivot.get_children():
-		child.queue_free()
+func _rebuild_viewmodel(_weapon_id: String) -> void:
+	"""Instance the animated first-person viewmodel.
 
-	var packed := ResourceLoader.load("res://assets/models/weapons.glb") as PackedScene
-	if packed == null:
+	The first build parented a bare weapon mesh to the camera: no arms, and
+	nothing moved when you fired. This loads the rigged viewmodel and keeps a
+	handle on its AnimationPlayer so firing, reloading and aiming drive real
+	motion — including the bolt cycling and the magazine leaving the well.
+	"""
+	if _viewmodel != null and is_instance_valid(_viewmodel):
 		return
-	var root := packed.instantiate()
-	var source: MeshInstance3D = null
-	var queue: Array[Node] = [root]
+
+	var packed := ResourceLoader.load(VIEWMODEL_PATH) as PackedScene
+	if packed == null:
+		push_error("[Player] viewmodel missing at %s" % VIEWMODEL_PATH)
+		return
+
+	_viewmodel = packed.instantiate()
+	# Authored at world scale in camera space, which puts the rifle 30 cm from
+	# the eye and filling a quarter of the screen. Scale it down and push it
+	# out to normal first-person framing.
+	_viewmodel.scale = Vector3(0.60, 0.60, 0.60)
+	_viewmodel.position = Vector3(0.012, -0.055, -0.175)
+	_weapon_pivot.add_child(_viewmodel)
+
+	var queue: Array[Node] = [_viewmodel]
 	while not queue.is_empty():
 		var node: Node = queue.pop_back()
-		if node is MeshInstance3D and node.name == weapon_id:
-			source = node
-			break
+		if node is AnimationPlayer:
+			_viewmodel_anim = node
+		elif node is MeshInstance3D:
+			MaterialLibrary.apply_to(node)
+			# The viewmodel lives inside the world but must never be occluded
+			# by it or cast shadows into it.
+			node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		queue.append_array(node.get_children())
 
-	if source != null:
-		var instance := MeshInstance3D.new()
-		instance.mesh = source.mesh
-		# Viewmodel scale, not world scale: a 1.3 m rifle held 30 cm from the
-		# lens fills half the screen at 1:1.
-		instance.scale = Vector3(0.42, 0.42, 0.42)
-		MaterialLibrary.apply_to(instance)
-		# Viewmodels must never clip into walls the camera is pressed against.
-		instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		_weapon_pivot.add_child(instance)
-	root.queue_free()
+	if _viewmodel_anim != null:
+		for clip: String in _viewmodel_anim.get_animation_list():
+			var animation := _viewmodel_anim.get_animation(clip)
+			if animation == null:
+				continue
+			animation.loop_mode = (Animation.LOOP_LINEAR
+				if clip in ["vm_idle", "vm_walk", "vm_aim"] else Animation.LOOP_NONE)
+		_viewmodel_anim.set_blend_time("vm_idle", "vm_walk", 0.2)
+		_viewmodel_anim.set_blend_time("vm_walk", "vm_idle", 0.2)
+		_viewmodel_anim.play("vm_draw")
+		_viewmodel_state = "vm_draw"
+
+
+## One-shots (fire, reload, draw) must finish before locomotion resumes.
+func _play_viewmodel(clip: String, force: bool = false) -> void:
+	if _viewmodel_anim == null or not _viewmodel_anim.has_animation(clip):
+		return
+	if _viewmodel_state == clip and not force:
+		return
+	_viewmodel_state = clip
+	_viewmodel_anim.play(clip, 0.12)
+
+
+func _update_viewmodel(delta: float) -> void:
+	if _viewmodel_anim == null:
+		return
+	_viewmodel_lock = maxf(0.0, _viewmodel_lock - delta)
+	if _viewmodel_lock > 0.0:
+		return
+
+	if _aiming:
+		_play_viewmodel("vm_aim")
+		return
+	var planar := Vector2(velocity.x, velocity.z).length()
+	_play_viewmodel("vm_walk" if (is_on_floor() and planar > 0.6) else "vm_idle")
 
 
 func cycle_weapon() -> void:
 	_equip((_weapon_index + 1) % _weapons.size())
+	_play_viewmodel("vm_draw", true)
+	_viewmodel_lock = 0.6
 
 
 func begin_reload() -> void:
@@ -248,6 +299,9 @@ func begin_reload() -> void:
 	if int(weapon["loaded"]) >= int(weapon["mag"]) or int(weapon["reserve"]) <= 0:
 		return
 	_reload_timer = float(weapon["reload"])
+	# Hold locomotion off for the length of the clip so the reload plays out.
+	_play_viewmodel("vm_reload", true)
+	_viewmodel_lock = 2.0
 
 
 func _apply_weapon(delta: float) -> void:
@@ -271,8 +325,9 @@ func _apply_weapon(delta: float) -> void:
 			_fire(weapon)
 
 	# Aiming pulls the weapon towards the centre of the screen and narrows FOV.
-	var rest := Vector3(0.21, -0.19, -0.52)
-	var sighted := Vector3(0.0, -0.10, -0.46)
+	# Position is animated by the viewmodel rig now; the pivot only holds it.
+	var rest := Vector3.ZERO
+	var sighted := Vector3.ZERO
 	var target := sighted if _aiming else rest
 	# A scoped weapon hides the viewmodel entirely: you are looking down the
 	# sight, not over it.
@@ -299,6 +354,9 @@ func _fire(weapon: Dictionary) -> void:
 	weapon["loaded"] = int(weapon["loaded"]) - 1
 	_fire_cooldown = float(weapon["interval"])
 	ammo_changed.emit(int(weapon["loaded"]), int(weapon["reserve"]))
+
+	_play_viewmodel("vm_fire", true)
+	_viewmodel_lock = 0.42
 
 	var kick: Vector2 = weapon["recoil"]
 	var spread := float(weapon["spread"]) * (0.4 if _aiming else 1.0)
