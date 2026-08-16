@@ -2,8 +2,73 @@
  "license": "CC0 1.0",
  "provider": "ambientCG",
  "materials": {
-  "sandbag_burlap": {
+  "rock_granite": {
    "size": 1024,
+   "maps": [
+    "albedo",
+    "normal",
+    "orm"
+   ],
+   "had_normal": true,
+   "had_roughness": true,
+   "had_ao": true,
+   "had_metalness": false,
+   "source": "Rock030"
+  },
+  "cliff_strata": {
+   "size": 512,
+   "maps": [
+    "albedo",
+    "normal",
+    "orm"
+   ],
+   "had_normal": true,
+   "had_roughness": true,
+   "had_ao": true,
+   "had_metalness": false,
+   "source": "Rock023"
+  },
+  "ground_rocky": {
+   "size": 1024,
+   "maps": [
+    "albedo",
+    "normal",
+    "orm"
+   ],
+   "had_normal": true,
+   "had_roughness": true,
+   "had_ao": true,
+   "had_metalness": false,
+   "source": "Gravel022"
+  },
+  "grass_highland": {
+   "size": 1024,
+   "maps": [
+    "albedo",
+    "normal",
+    "orm"
+   ],
+   "had_normal": true,
+   "had_roughness": true,
+   "had_ao": true,
+   "had_metalness": false,
+   "source": "Grass004"
+  },
+  "soil_trench": {
+   "size": 512,
+   "maps": [
+    "albedo",
+    "normal",
+    "orm"
+   ],
+   "had_normal": true,
+   "had_roughness": true,
+   "had_ao": true,
+   "had_metalness": false,
+   "source": "Ground054"
+  },
+  "sandbag_burlap": {
+   "size": 512,
    "maps": [
     "albedo",
     "normal",
@@ -20,8 +85,60 @@
     0.44
    ]
   },
+  "wood_plank": {
+   "size": 512,
+   "maps": [
+    "albedo",
+    "normal",
+    "orm"
+   ],
+   "had_normal": true,
+   "had_roughness": true,
+   "had_ao": true,
+   "had_metalness": true,
+   "source": "Planks020"
+  },
+  "metal_corrugated": {
+   "size": 512,
+   "maps": [
+    "albedo",
+    "normal",
+    "orm"
+   ],
+   "had_normal": true,
+   "had_roughness": true,
+   "had_ao": false,
+   "had_metalness": true,
+   "source": "MetalPlates006"
+  },
+  "concrete_bunker": {
+   "size": 512,
+   "maps": [
+    "albedo",
+    "normal",
+    "orm"
+   ],
+   "had_normal": true,
+   "had_roughness": true,
+   "had_ao": false,
+   "had_metalness": false,
+   "source": "Concrete034"
+  },
+  "crate_wood": {
+   "size": 512,
+   "maps": [
+    "albedo",
+    "normal",
+    "orm"
+   ],
+   "had_normal": true,
+   "had_roughness": true,
+   "had_ao": false,
+   "had_metalness": false,
+   "source": "Wood067"
+  },
   "uniform_cloth": {
-   "size": 1024,
+   "size": 512,
    "maps": [
     "albedo",
     "normal",
@@ -34,7 +151,7 @@
    "source": "Fabric054"
   },
   "skin": {
-   "size": 1024,
+   "size": 512,
    "maps": [
     "albedo",
     "normal",
@@ -52,7 +169,7 @@
    ]
   },
   "gear_leather": {
-   "size": 1024,
+   "size": 512,
    "maps": [
     "albedo",
     "normal",
@@ -69,8 +186,60 @@
     0.22
    ]
   },
+  "gunmetal": {
+   "size": 512,
+   "maps": [
+    "albedo",
+    "normal",
+    "orm"
+   ],
+   "had_normal": true,
+   "had_roughness": true,
+   "had_ao": false,
+   "had_metalness": true,
+   "source": "Metal032"
+  },
+  "bark": {
+   "size": 512,
+   "maps": [
+    "albedo",
+    "normal",
+    "orm"
+   ],
+   "had_normal": true,
+   "had_roughness": true,
+   "had_ao": true,
+   "had_metalness": false,
+   "source": "Bark012"
+  },
+  "sand_dry": {
+   "size": 512,
+   "maps": [
+    "albedo",
+    "normal",
+    "orm"
+   ],
+   "had_normal": true,
+   "had_roughness": true,
+   "had_ao": true,
+   "had_metalness": false,
+   "source": "Ground033"
+  },
+  "moss_rock": {
+   "size": 512,
+   "maps": [
+    "albedo",
+    "normal",
+    "orm"
+   ],
+   "had_normal": true,
+   "had_roughness": true,
+   "had_ao": true,
+   "had_metalness": false,
+   "source": "Rock035"
+  },
   "uniform_ranger": {
-   "size": 1024,
+   "size": 512,
    "maps": [
     "albedo",
     "normal",
@@ -88,7 +257,7 @@
    ]
   },
   "uniform_legion": {
-   "size": 1024,
+   "size": 512,
    "maps": [
     "albedo",
     "normal",

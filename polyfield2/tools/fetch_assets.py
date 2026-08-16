@@ -200,6 +200,13 @@ def repack(name, directory, tint=None, desaturate=False):
 
     orm = np.stack([ao, roughness, metallic], axis=-1)
 
+    target = OUTPUT_SIZE.get(name, DEFAULT_OUTPUT_SIZE)
+    if target < size:
+        albedo = _resize_to(albedo, target)
+        normal = _resize_to(normal, target)
+        orm = _resize_to(orm, target)
+        size = target
+
     os.makedirs(OUT_DIR, exist_ok=True)
     write_png(os.path.join(OUT_DIR, f"{name}_albedo.png"), albedo, srgb=True)
     write_png(os.path.join(OUT_DIR, f"{name}_normal.png"), normal, srgb=False)
@@ -212,6 +219,18 @@ def repack(name, directory, tint=None, desaturate=False):
         "had_ao": ao_path is not None,
         "had_metalness": metal_path is not None,
     }
+
+
+#: Output resolution per material. The three terrain layers cover most of the
+#: screen and stay at 1K; everything else is seen at arm's length or further
+#: and is indistinguishable at 512, which is a 4x saving in both APK size and
+#: texture memory.
+OUTPUT_SIZE = {
+    "rock_granite": 1024,
+    "grass_highland": 1024,
+    "ground_rocky": 1024,
+}
+DEFAULT_OUTPUT_SIZE = 512
 
 
 #: Materials whose source hue is wrong for us: desaturated, then tinted to the
