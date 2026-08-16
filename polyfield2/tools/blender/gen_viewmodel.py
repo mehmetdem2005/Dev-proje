@@ -186,22 +186,29 @@ def build_moving_parts():
 # Arms
 # --------------------------------------------------------------------------
 
-def _limb(name, p0, p1, r0, r1, sides=8):
+def _limb(name, p0, p1, width, thickness):
+    """A blocky rectangular limb segment between two points.
+
+    Deliberately a box, not a tapered cylinder: the arms read better as clean
+    rectangular blocks than as low-poly tubes, and there is nothing to shade
+    badly at viewmodel distance.
+    """
     start, end = Vector(p0), Vector(p1)
     axis = end - start
     length = axis.length
     rotation = axis.to_track_quat("Z", "Y").to_matrix().to_4x4()
+
     bm = bmesh.new()
+    corners = [(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]
     rings = []
-    for level, radius in ((0.0, r0), (1.0, r1)):
+    for level in (0.0, 1.0):
         ring = []
-        for index in range(sides):
-            angle = (index / sides) * math.tau
-            local = Vector((math.cos(angle) * radius, math.sin(angle) * radius, level * length))
+        for cx, cy in corners:
+            local = Vector((cx * width, cy * thickness, level * length))
             ring.append(bm.verts.new(start + rotation @ local))
         rings.append(ring)
-    for index in range(sides):
-        nxt = (index + 1) % sides
+    for index in range(4):
+        nxt = (index + 1) % 4
         bm.faces.new((rings[0][index], rings[0][nxt], rings[1][nxt], rings[1][index]))
     bm.faces.new(list(reversed(rings[0])))
     bm.faces.new(rings[1])
@@ -210,31 +217,18 @@ def _limb(name, p0, p1, r0, r1, sides=8):
 
 
 def _hand(name, wrist, direction, side, spread=0.030):
-    """Palm plus four fingers and a thumb, wrapped around the given axis."""
-    parts = []
+    """One block. No fingers.
+
+    Modelled fingers at this scale read as a bundle of sausages rather than a
+    hand; a single clean block is both cheaper and easier to look at.
+    """
     direction = Vector(direction).normalized()
     basis = direction.to_track_quat("Z", "Y").to_matrix().to_4x4()
 
-    palm = _bevelled_box(f"{name}_palm", (0.052, 0.085, 0.032), bevel=0.010)
-    palm.location = Vector(wrist) + direction * 0.045
-    palm.rotation_euler = basis.to_euler()
-    parts.append(palm)
-
-    # Fingers curl around the grip rather than sticking out straight.
-    for index in range(4):
-        offset = (index - 1.5) * 0.020
-        curl = 0.55 + index * 0.06
-        finger = _bevelled_box(f"{name}_finger_{index}", (0.016, 0.052, 0.016), bevel=0.005)
-        local = Vector((offset, 0.045, -0.026 * side))
-        finger.location = Vector(wrist) + direction * 0.045 + basis @ local
-        finger.rotation_euler = (basis @ Matrix.Rotation(curl * side, 4, "X")).to_euler()
-        parts.append(finger)
-
-    thumb = _bevelled_box(f"{name}_thumb", (0.018, 0.048, 0.018), bevel=0.006)
-    thumb.location = Vector(wrist) + direction * 0.050 + basis @ Vector((spread * side, 0.02, 0.020))
-    thumb.rotation_euler = (basis @ Matrix.Rotation(-0.7 * side, 4, "Y")).to_euler()
-    parts.append(thumb)
-    return parts
+    block = _bevelled_box(f"{name}_block", (0.070, 0.062, 0.105), bevel=0.012)
+    block.location = Vector(wrist) + direction * 0.052
+    block.rotation_euler = basis.to_euler()
+    return [block]
 
 
 def build_arms():
@@ -246,10 +240,10 @@ def build_arms():
         fore_head, fore_tail = bones[f"Arm{side_name}_Fore"]
         hand_head, hand_tail = bones[f"Arm{side_name}_Hand"]
 
-        sleeve.append(_limb(f"vm_arm{side_name}_upper", upper_head, upper_tail, 0.062, 0.052))
-        sleeve.append(_limb(f"vm_arm{side_name}_fore", fore_head, fore_tail, 0.052, 0.040))
+        sleeve.append(_limb(f"vm_arm{side_name}_upper", upper_head, upper_tail, 0.105, 0.095))
+        sleeve.append(_limb(f"vm_arm{side_name}_fore", fore_head, fore_tail, 0.092, 0.082))
         # Cuff where the sleeve ends and the hand begins.
-        cuff = _bevelled_box(f"vm_arm{side_name}_cuff", (0.058, 0.030, 0.058), bevel=0.008)
+        cuff = _bevelled_box(f"vm_arm{side_name}_cuff", (0.098, 0.030, 0.090), bevel=0.006)
         cuff.location = fore_tail
         sleeve.append(cuff)
 
@@ -509,8 +503,7 @@ def main():
     pf.select_only(sleeves)
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
     pf.box_project_uv(sleeves, scale=0.30)
-    pf.shade_smooth(sleeves, angle_deg=40.0)
-    pf.apply_modifiers(sleeves)
+    pf.shade_flat(sleeves)
     pf.triangulate(sleeves)
     pf.set_material(sleeves, "uniform_ranger")
     skin_arms(sleeves, armature)
@@ -519,8 +512,7 @@ def main():
     pf.select_only(hands)
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
     pf.box_project_uv(hands, scale=0.22)
-    pf.shade_smooth(hands, angle_deg=48.0)
-    pf.apply_modifiers(hands)
+    pf.shade_flat(hands)
     pf.triangulate(hands)
     pf.set_material(hands, "skin")
     skin_arms(hands, armature)
