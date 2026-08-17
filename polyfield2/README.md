@@ -68,6 +68,11 @@ and Godot reads the exported `layout.json` to place everything. A trench module
 cannot drift away from the channel cut for it, because both come from the same
 numbers.
 
+The map has a road network linking the zones, a dry watercourse cutting across
+the main axis as a covered route, and a structure at every capture point —
+concrete bunker, timber watchtower, stone ruin — so each zone is recognisable
+by silhouette rather than only by the letter on the HUD.
+
 "Ridgeline" is 192 × 192 m of rocky highland: a meandering ridge, seven rock
 outcrops, five capture zones (A–E), eight trench lines with parapets and
 craters, and a rocky boundary rim. About 77% of the playable area is walkable

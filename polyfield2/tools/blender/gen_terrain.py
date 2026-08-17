@@ -48,6 +48,15 @@ def splat_weights(xs, ys, height):
     for cx, cy in layout.BASES.values():
         distance = np.sqrt((xs - cx) ** 2 + (ys - cy) ** 2) / (layout.BASE_FLAT_RADIUS * 1.1)
         gravel = np.maximum(gravel, np.clip(1.0 - distance ** 3, 0.0, 1.0))
+    # Roads and the dry watercourse are worn down to bare gravel — that is what
+    # makes them read as routes rather than as shallow dents in the ground.
+    for _name, points, width in layout.ROADS:
+        distance = layout._polyline_distance(xs, ys, points)
+        gravel = np.maximum(gravel, np.clip(1.0 - (distance - width * 0.5) / 2.2, 0.0, 1.0))
+    gully_points, gully_width, _depth = layout.GULLY
+    gully_distance = layout._polyline_distance(xs, ys, gully_points)
+    gravel = np.maximum(gravel,
+        np.clip(1.0 - (gully_distance - gully_width * 0.5) / 4.0, 0.0, 1.0))
 
     # Grass takes whatever is left, thinned by a dryness field so the ridge
     # never reads as a uniform lawn.

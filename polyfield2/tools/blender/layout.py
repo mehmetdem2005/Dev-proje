@@ -187,6 +187,23 @@ def carve_trenches(xs, ys, height):
     return carved
 
 
+# Worn vehicle tracks linking the zones. Roads do two things for a map: they
+# tell a player where to go without a marker, and they give the eye somewhere
+# to travel. Carved shallow and flattened rather than trenched.
+ROADS = [
+    ("main_axis", [(-72, -70), (-56, -48), (-40, -30), (-22, -12), (-4, 2), (14, 12),
+                   (34, 26), (52, 44), (68, 62)], 5.0),
+    ("west_spur", [(-56, -48), (-52, -24), (-42, 0), (-30, 22), (-24, 30)], 3.6),
+    ("east_spur", [(14, 12), (26, -2), (32, -18), (33, -28)], 3.6),
+    ("ridge_track", [(-24, 30), (-6, 26), (10, 18), (26, 12)], 3.2),
+]
+
+# A dry watercourse. It cuts across the main axis, so it is a natural covered
+# route as well as a terrain feature that is not another gaussian hill.
+GULLY = ([(-88, 20), (-62, 14), (-38, 4), (-16, -6), (6, -16), (28, -30), (52, -46),
+          (74, -58)], 7.0, 2.6)
+
+
 CRATERS = [
     (-46.0, -12.0, 6.5, 1.6), (12.0, 22.0, 5.0, 1.2), (34.0, 2.0, 7.0, 1.8),
     (-8.0, -46.0, 5.5, 1.4), (56.0, 12.0, 6.0, 1.5), (-62.0, 18.0, 5.2, 1.3),
@@ -201,6 +218,38 @@ def carve_craters(xs, ys, height):
         rim = np.clip(1.0 - (distance - 1.0) ** 2 * 6.0, 0.0, 1.0) * (distance > 1.0)
         carved += rim * depth * 0.35 - bowl * depth
     return carved
+
+
+def carve_roads(xs, ys, height):
+    """Flatten a track along each road, with a shallow cut and soft verges."""
+    carved = height.copy()
+    for _name, points, width in ROADS:
+        distance = _polyline_distance(xs, ys, points)
+        half = width * 0.5
+        blend = np.clip(1.0 - (distance - half) / 3.5, 0.0, 1.0)
+        if blend.max() <= 0.0:
+            continue
+        # Ease the road towards a locally smoothed version of the terrain
+        # rather than to a fixed height, so it follows the hills instead of
+        # cutting a shelf through them.
+        smoothed = height.copy()
+        for _pass in range(3):
+            smoothed = (smoothed
+                        + np.roll(smoothed, 1, 0) + np.roll(smoothed, -1, 0)
+                        + np.roll(smoothed, 1, 1) + np.roll(smoothed, -1, 1)) / 5.0
+        carved = carved * (1.0 - blend * 0.85) + smoothed * (blend * 0.85)
+        carved -= np.clip(1.0 - distance / half, 0.0, 1.0) * 0.22
+    return carved
+
+
+def carve_gully(xs, ys, height):
+    """Cut the dry watercourse: wide, soft-sided, deeper than a road."""
+    points, width, depth = GULLY
+    distance = _polyline_distance(xs, ys, points)
+    half = width * 0.5
+    profile = np.clip(1.0 - (distance - half) / 6.0, 0.0, 1.0) ** 1.4
+    banks = np.clip(1.0 - np.abs(distance - half - 5.0) / 4.0, 0.0, 1.0)
+    return height - profile * depth + banks * 0.45
 
 
 def flatten_zones(xs, ys, height, strength=0.8):
@@ -225,6 +274,8 @@ def flatten_zones(xs, ys, height, strength=0.8):
 
 def build_terrain(size=MAP_SIZE, grid=GRID, seed=SEED):
     xs, ys, height = height_field(size, grid, seed)
+    height = carve_gully(xs, ys, height)
+    height = carve_roads(xs, ys, height)
     height = flatten_zones(xs, ys, height)
     height = carve_trenches(xs, ys, height)
     height = carve_craters(xs, ys, height)
@@ -257,6 +308,17 @@ ZONES = [
     ("D",  31.0, -26.0, 11.0, "neutral"),
     ("E",  55.0,  47.0, 11.0, "legion"),
 ]
+
+#: zone id -> building kind. Every capture point needs its own silhouette or
+#: they are indistinguishable once you are inside one.
+ZONE_BUILDINGS = {
+    "A": "bunker",
+    "B": "watchtower",
+    "C": "ruin",
+    "D": "bunker",
+    "E": "watchtower",
+}
+
 
 SPAWNS = {
     "ranger": [(-70 + i % 4 * 4.0, -70 + i // 4 * 4.0) for i in range(16)],
@@ -436,6 +498,16 @@ def prop_scatter(xs, ys, height, seed=SEED):
             "z": float(sample_height(xs, ys, height, cx, cy)),
             "yaw": 0.0, "zone": name,
         })
+        building = ZONE_BUILDINGS.get(name)
+        if building is not None:
+            angle = generator.uniform(0, math.tau)
+            bx = cx + math.cos(angle) * radius * 0.62
+            by = cy + math.sin(angle) * radius * 0.62
+            placements.append({
+                "kind": building, "x": float(bx), "y": float(by),
+                "z": float(sample_height(xs, ys, height, bx, by)) - 0.15,
+                "yaw": float(generator.uniform(0, math.tau)), "zone": name,
+            })
     return placements
 
 

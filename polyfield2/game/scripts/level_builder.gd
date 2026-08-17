@@ -12,6 +12,7 @@ const ROCKS_PATH := "res://assets/models/rocks.glb"
 const FORTS_PATH := "res://assets/models/fortifications.glb"
 const PROPS_PATH := "res://assets/models/props.glb"
 const VEGETATION_PATH := "res://assets/models/vegetation.glb"
+const BUILDINGS_PATH := "res://assets/models/buildings.glb"
 
 signal level_ready(stats: Dictionary)
 
@@ -259,6 +260,9 @@ func _build_sandbags() -> void:
 
 func _build_props() -> void:
 	var meshes := _meshes_from(PROPS_PATH)
+	# Zone structures live in their own file but are placed by the same prop
+	# pass, so merge the two lookups.
+	meshes.merge(_meshes_from(BUILDINGS_PATH), true)
 	if meshes.is_empty():
 		return
 
@@ -294,7 +298,15 @@ func _build_props() -> void:
 			instance.transform = Transform3D(basis, position)
 			MaterialLibrary.apply_to(instance)
 			container.add_child(instance)
-		if kind != "capture_mast":
+		if kind in ["bunker", "watchtower", "ruin"]:
+			# Buildings need real collision: the player walks into and behind
+			# them, so a box would either block the doorway or let them
+			# through the walls.
+			var building_mesh: Mesh = meshes.get(kind, null)
+			if building_mesh != null:
+				_add_collision(building_mesh.create_trimesh_shape(),
+					Transform3D(basis, position))
+		elif kind != "capture_mast":
 			_add_collision(shape, Transform3D(basis, position + Vector3.UP * 0.35))
 		placed += 1
 
