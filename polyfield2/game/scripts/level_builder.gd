@@ -380,10 +380,15 @@ func _build_vegetation() -> void:
 		# still cast, which is what grounds the tree.
 		if material_name == "leaf":
 			instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		# A tree read at 200 m is scenery; a tuft of grass read at 200 m is
-		# overdraw. Trunks and crowns get double the range of ground cover.
-		var range_scale := 2.0 if part.begins_with("tree") else 1.0
-		instance.visibility_range_end = float(Settings.preset()["prop_distance"]) * range_scale
+		# A tree read at 180 m is scenery; a tuft of grass at 180 m is overdraw.
+		# Trees get the longer range — but capped, not simply doubled. Foliage is
+		# alpha-scissor, the most expensive thing on the screen of a phone, and
+		# drawing every crown on a 192 m map at once is how the first build
+		# earned its stutter.
+		var distance := float(Settings.preset()["prop_distance"])
+		if part.begins_with("tree"):
+			distance = min(distance * 1.5, 180.0)
+		instance.visibility_range_end = distance
 		instance.visibility_range_end_margin = 12.0
 		instance.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 		placed += grouped[part].size()
