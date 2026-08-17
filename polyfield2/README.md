@@ -38,7 +38,7 @@ is seeded, so a rebuild reproduces the same assets.
 
 ### Textures — `tools/fetch_assets.py`
 
-Nineteen CC0 material sets, each repacked into three maps:
+Twenty CC0 material sets, each repacked into three maps:
 
 | Map | Contents | Colour space |
 | --- | --- | --- |
@@ -77,6 +77,11 @@ by silhouette rather than only by the letter on the HUD.
 outcrops, five capture zones (A–E), eight trench lines with parapets and
 craters, and a rocky boundary rim. About 77% of the playable area is walkable
 below 35°, and each capture zone is levelled to under 13° median slope.
+
+Ground cover is painted from slope and a dryness field, and grass is the
+*default* — soil sits on anything gentle enough to hold it, and only genuinely
+steep faces come out as stone. Treating grass as the leftover instead is what
+turned the first pass into a uniform grey moonscape.
 
 ### Meshes
 
@@ -142,7 +147,7 @@ build-tools; no Gradle, no NDK.
 | --- | --- |
 | Package | `com.mehmetdem.polyfield2` |
 | Label | Polyfield 2 |
-| Version | 0.1.0 (code 1) |
+| Version | 0.7.0 (code 7) |
 | ABI | arm64-v8a only |
 | Target SDK | 36 |
 | Renderer | Vulkan, Forward Mobile |

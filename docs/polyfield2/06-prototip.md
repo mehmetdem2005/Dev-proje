@@ -82,6 +82,8 @@ ve düzeltilen gerçek hatalar:
 ## Bilinen Eksikler
 
 - Elle yazılmış LOD zinciri yok; Godot'un otomatik mesh LOD'u kullanılıyor.
-- Botlar navmesh değil düz çizgi güdümü kullanıyor; kayaya dayanıp kalabiliyor.
-- Ses yok.
+- Botlar navmesh değil bıyık ışını + ayrışma ile güdülüyor; önlerindekinden
+  kaçınıyorlar ama büyük bir engelin etrafından yol bulamıyorlar.
+- Ses sentezleniyor, kayıt değil: API anahtarı istemeyen bir CC0 oyun sesi
+  kütüphanesine ulaşılamadı. Aynı isimde WAV'larla değiştirilebilir.
 - Asker oranlarında bacaklar gövdeye göre hâlâ bir miktar uzun.

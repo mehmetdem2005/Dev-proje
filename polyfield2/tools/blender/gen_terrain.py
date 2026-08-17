@@ -29,10 +29,10 @@ def splat_weights(xs, ys, height):
     slope = np.sqrt(gx ** 2 + gy ** 2)
 
     # Steep faces are bare rock, and so are the outcrop caps.
-    # Anything steeper than a scree slope is bare rock. The old threshold left
-    # the boundary mountains painted in gravel, which is why they read as soft
-    # grey heaps rather than stone.
-    rock = np.clip((slope - 0.30) / 0.35, 0.0, 1.0) ** 0.7
+    # The threshold is deliberately high: at 0.30 every rolling hillside came
+    # out stone, and the map read as one grey moonscape with no nature in it.
+    # Rock now means a face too steep to hold soil, not merely a slope.
+    rock = np.clip((slope - 0.46) / 0.40, 0.0, 1.0) ** 0.8
     for cx, cy, _amount, radius in layout.OUTCROPS:
         distance = np.sqrt((xs - cx) ** 2 + (ys - cy) ** 2) / (radius * 0.9)
         rock = np.maximum(rock, np.clip(1.2 - distance ** 2, 0.0, 1.0))
@@ -58,13 +58,18 @@ def splat_weights(xs, ys, height):
     gravel = np.maximum(gravel,
         np.clip(1.0 - (gully_distance - gully_width * 0.5) / 4.0, 0.0, 1.0))
 
-    # Grass takes whatever is left, thinned by a dryness field so the ridge
-    # never reads as a uniform lawn.
+    # Everything that is neither bare stone nor churned ground is highland
+    # meadow. Grass is the *default* cover here, not the leftover: soil sits on
+    # anything gentle enough to hold it, and the dryness field only scrapes
+    # patches of it back to gravel so the ridge is never a uniform lawn.
+    remainder = np.clip(1.0 - rock - gravel, 0.0, 1.0)
     dryness = fbm_2d(xs, ys, frequency=0.018, octaves=4, seed=layout.SEED + 404)
-    # Grass cannot hold on a steep face either.
-    grass = np.clip(1.0 - rock - gravel, 0.0, 1.0) * np.clip(dryness * 1.9 - 0.35, 0.0, 1.0)
-    grass *= np.clip(1.0 - (slope - 0.35) / 0.4, 0.0, 1.0)
-    gravel = np.maximum(gravel, np.clip(1.0 - rock - grass, 0.0, 1.0))
+    bare = np.clip(0.62 - dryness * 1.25, 0.0, 1.0)
+    # Grass thins out as the ground tips over, well before it turns to rock.
+    bare = np.maximum(bare, np.clip((slope - 0.26) / 0.30, 0.0, 1.0))
+
+    grass = remainder * (1.0 - bare)
+    gravel = gravel + remainder * bare
 
     total = np.maximum(rock + grass + gravel, 1e-6)
     return rock / total, grass / total, gravel / total

@@ -66,8 +66,17 @@ run_blender "$ROOT/tools/blender/gen_fortifications.py"
 echo "--- props ---"
 run_blender "$ROOT/tools/blender/gen_props.py"
 
+echo "--- buildings ---"
+run_blender "$ROOT/tools/blender/gen_buildings.py"
+
+echo "--- vegetation ---"
+run_blender "$ROOT/tools/blender/gen_trees.py"
+
 echo "--- weapons ---"
 run_blender "$ROOT/tools/blender/gen_weapons.py"
+
+echo "--- first-person viewmodel ---"
+run_blender "$ROOT/tools/blender/gen_viewmodel.py"
 
 echo "--- soldiers ---"
 run_blender "$ROOT/tools/blender/gen_character.py"

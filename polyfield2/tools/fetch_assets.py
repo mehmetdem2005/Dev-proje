@@ -42,13 +42,14 @@ API = "https://ambientcg.com/get?file={file}"
 SETS = {
     "rock_granite": "Rock030",
     "cliff_strata": "Rock023",
-    "ground_rocky": "Gravel022",
+    "ground_rocky": "Ground047",
     "grass_highland": "Grass004",
     "soil_trench": "Ground054",
     "sandbag_burlap": "Fabric064",
     "wood_plank": "Planks020",
     "metal_corrugated": "MetalPlates006",
-    "concrete_bunker": "Concrete034",
+    "concrete_bunker": "Concrete033",
+    "stone_wall": "Bricks023",
     "crate_wood": "Wood067",
     "uniform_cloth": "Fabric054",
     "skin": "Fabric031",
@@ -62,13 +63,14 @@ SETS = {
 #: fallbacks tried in order when the first choice 404s
 ALTERNATES = {
     "cliff_strata": ["Rock020", "Rock029", "Cliff002"],
-    "ground_rocky": ["Gravel023", "Ground037", "Gravel021"],
+    "ground_rocky": ["Gravel022", "Ground037", "Gravel021"],
     "grass_highland": ["Grass003", "Grass001", "Ground038"],
     "soil_trench": ["Ground052", "Ground037", "Ground048"],
     "sandbag_burlap": ["Fabric054", "Fabric020", "Fabric006"],
     "wood_plank": ["Planks011", "Wood051", "Planks017"],
     "metal_corrugated": ["MetalPlates003", "Metal031", "MetalPlates013"],
-    "concrete_bunker": ["Concrete033", "Concrete016", "Concrete031"],
+    "concrete_bunker": ["Concrete031", "Concrete016", "Concrete034"],
+    "stone_wall": ["Bricks024", "Bricks031", "Concrete033"],
     "crate_wood": ["Wood062", "Wood048", "Planks014"],
     "uniform_cloth": ["Fabric020", "Fabric046", "Fabric008"],
     "skin": ["Fabric045", "Fabric008", "Fabric020"],
@@ -250,8 +252,17 @@ def main():
     only = argv[argv.index("--only") + 1].split(",") if "--only" in argv else None
 
     wanted = {k: v for k, v in SETS.items() if only is None or k in only}
-    report, credits = {}, []
 
+    # A --only run refreshes part of the library, so it starts from the manifest
+    # already on disk and overwrites just the entries it rebuilds. Starting from
+    # empty would rewrite SOURCES.json as if the other sets had never existed.
+    report = {}
+    if only is not None:
+        try:
+            with open(os.path.join(OUT_DIR, "SOURCES.json")) as handle:
+                report = json.load(handle).get("materials", {})
+        except (OSError, ValueError):
+            pass
     for name, asset_id in wanted.items():
         candidates = [asset_id] + ALTERNATES.get(name, [])
         directory, used = None, None
@@ -274,24 +285,23 @@ def main():
 
         info["source"] = used
         report[name] = info
-        credits.append((name, used))
         print(f"  {name:<18} <- ambientCG {used:<16} {info['size']}px "
               f"{'N' if info['had_normal'] else '-'}"
               f"{'R' if info['had_roughness'] else '-'}"
               f"{'A' if info['had_ao'] else '-'}"
               f"{'M' if info['had_metalness'] else '-'}")
 
-    # Faction uniforms are the same fabric tinted two ways.
+    # Faction uniforms are the same fabric tinted two ways. Only re-tint the
+    # ones whose base fabric was actually rebuilt in this run.
     for name, (base, tint) in TINTS.items():
         source = SETS.get(base)
-        if source is None or base not in report:
+        if source is None or base not in wanted or base not in report:
             continue
         directory = fetch_set(report[base]["source"], size)
         info = repack(name, directory, tint=tint, desaturate=True)
         info["source"] = report[base]["source"]
         info["tint"] = list(tint)
         report[name] = info
-        credits.append((name, info["source"]))
         print(f"  {name:<18} <- ambientCG {info['source']:<16} tinted {tint}")
 
     with open(os.path.join(OUT_DIR, "SOURCES.json"), "w") as handle:
@@ -303,8 +313,12 @@ def main():
              "[ambientCG](https://ambientcg.com/). No attribution is legally required;",
              "it is recorded here anyway so the provenance of every file is traceable.",
              "", "| Material | ambientCG asset |", "| --- | --- |"]
-    for name, source in sorted(credits):
-        lines.append(f"| `{name}` | [{source}](https://ambientcg.com/view?id={source}) |")
+    # Built from the manifest, not from a running list: a --only run must not
+    # append a second row for a material whose source it just replaced.
+    for name, info in sorted(report.items()):
+        source = info.get("source")
+        if source:
+            lines.append(f"| `{name}` | [{source}](https://ambientcg.com/view?id={source}) |")
     lines += ["", "Regenerate with `blender -b --python tools/fetch_assets.py`.",
               "Downloads are cached in `tools/.asset-cache/` (gitignored)."]
     with open(os.path.join(OUT_DIR, "SOURCES.md"), "w") as handle:

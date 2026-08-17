@@ -423,11 +423,11 @@ def vegetation_scatter(xs, ys, height, seed=SEED):
         return float(slope_field[iy, ix])
 
     placements = []
-    targets = {"tree": 150, "bush": 220, "grass": 900}
+    targets = {"tree": 260, "bush": 300, "grass": 900}
     counts = {"tree": 0, "bush": 0, "grass": 0}
 
     attempts = 0
-    while sum(counts.values()) < sum(targets.values()) and attempts < 40000:
+    while sum(counts.values()) < sum(targets.values()) and attempts < 60000:
         attempts += 1
         kind = ("tree" if counts["tree"] < targets["tree"]
                 else "bush" if counts["bush"] < targets["bush"] else "grass")

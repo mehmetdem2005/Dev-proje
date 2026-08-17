@@ -39,7 +39,7 @@
    "had_roughness": true,
    "had_ao": true,
    "had_metalness": false,
-   "source": "Gravel022"
+   "source": "Ground047"
   },
   "grass_highland": {
    "size": 1024,
@@ -120,9 +120,9 @@
    ],
    "had_normal": true,
    "had_roughness": true,
-   "had_ao": false,
+   "had_ao": true,
    "had_metalness": false,
-   "source": "Concrete034"
+   "source": "Concrete033"
   },
   "crate_wood": {
    "size": 512,
@@ -273,6 +273,19 @@
     0.47,
     0.44
    ]
+  },
+  "stone_wall": {
+   "size": 512,
+   "maps": [
+    "albedo",
+    "normal",
+    "orm"
+   ],
+   "had_normal": true,
+   "had_roughness": true,
+   "had_ao": true,
+   "had_metalness": false,
+   "source": "Bricks023"
   }
  }
 }

@@ -21,6 +21,7 @@ const MATERIALS := {
 	"wood_plank": 1.0,
 	"metal_corrugated": 1.0,
 	"concrete_bunker": 1.0,
+	"stone_wall": 1.0,
 	"crate_wood": 1.0,
 	"uniform_ranger": 1.0,
 	"uniform_legion": 1.0,

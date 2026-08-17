@@ -1,3 +1,5 @@
 # Exported binaries — rebuild with game/export_presets.cfg, do not commit.
 build/
 tools/.asset-cache/
+__pycache__/
+*.pyc

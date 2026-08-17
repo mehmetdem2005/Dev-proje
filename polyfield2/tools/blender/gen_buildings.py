@@ -206,8 +206,8 @@ def make_ruin(name="ruin"):
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
     pf.shade_flat(obj)
     pf.triangulate(obj)
-    pf.box_project_uv(obj, scale=2.0)
-    pf.set_material(obj, "concrete_bunker")
+    pf.box_project_uv(obj, scale=2.6)
+    pf.set_material(obj, "stone_wall")
     return _ground(obj)
 
 

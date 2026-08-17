@@ -341,7 +341,10 @@ func _build_vegetation() -> void:
 			continue
 		# Thin by density rather than truncating the list, so what survives is
 		# still spread across the whole map.
-		if generator.randf() > density:
+		# Trees survive thinning: they are the silhouettes that make the ridge
+		# read as country rather than as quarry spoil, and there are few enough
+		# of them that keeping all of them costs little.
+		if kind != "tree" and generator.randf() > density:
 			continue
 
 		var names: Array = species[kind]
@@ -377,7 +380,10 @@ func _build_vegetation() -> void:
 		# still cast, which is what grounds the tree.
 		if material_name == "leaf":
 			instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		instance.visibility_range_end = float(Settings.preset()["prop_distance"])
+		# A tree read at 200 m is scenery; a tuft of grass read at 200 m is
+		# overdraw. Trunks and crowns get double the range of ground cover.
+		var range_scale := 2.0 if part.begins_with("tree") else 1.0
+		instance.visibility_range_end = float(Settings.preset()["prop_distance"]) * range_scale
 		instance.visibility_range_end_margin = 12.0
 		instance.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 		placed += grouped[part].size()
