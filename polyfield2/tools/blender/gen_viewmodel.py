@@ -59,10 +59,14 @@ def _skeleton():
         ("ArmR_Upper", "VM_Root", (0.20, -0.20, -0.28), (0.16, -0.02, -0.24)),
         ("ArmR_Fore", "ArmR_Upper", (0.16, -0.02, -0.24), (0.115, 0.16, -0.185)),
         ("ArmR_Hand", "ArmR_Fore", (0.115, 0.16, -0.185), (0.105, 0.25, -0.165)),
-        # Left arm: reaches across to the handguard.
-        ("ArmL_Upper", "VM_Root", (-0.19, -0.19, -0.30), (-0.10, 0.02, -0.24)),
-        ("ArmL_Fore", "ArmL_Upper", (-0.10, 0.02, -0.24), (0.03, 0.30, -0.175)),
-        ("ArmL_Hand", "ArmL_Fore", (0.03, 0.30, -0.175), (0.08, 0.40, -0.155)),
+        # Left arm: reaches across and under to the handguard.
+        #
+        # The hand used to stop short of the weapon and slightly behind it, so
+        # the block ended up inside the receiver and invisible. It now sits on
+        # the handguard, offset to the weapon's left so the camera sees it.
+        ("ArmL_Upper", "VM_Root", (-0.19, -0.19, -0.30), (-0.09, 0.05, -0.235)),
+        ("ArmL_Fore", "ArmL_Upper", (-0.09, 0.05, -0.235), (0.045, 0.44, -0.172)),
+        ("ArmL_Hand", "ArmL_Fore", (0.045, 0.44, -0.172), (0.078, 0.535, -0.152)),
     ]
 
 

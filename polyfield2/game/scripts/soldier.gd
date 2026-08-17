@@ -276,6 +276,7 @@ func _shoot_at(who: Node3D) -> void:
 		collider.call("take_damage", SHOT_DAMAGE, self)
 	_play("fire", true)
 	_current_clip = ""
+	Audio.play_at("fire_rifle", _eye_point(), -6.0)
 
 
 func _combat(delta: float) -> void:

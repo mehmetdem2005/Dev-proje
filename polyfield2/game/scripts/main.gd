@@ -25,6 +25,7 @@ func _ready() -> void:
 	_hud.set_show_fps(Settings.show_fps)
 	Settings.apply_to_scene($Sun, MaterialLibrary.terrain_material())
 	_build_pause_menu()
+	Audio.start_ambience(_player)
 
 	var shot := Node.new()
 	shot.name = "Screenshot"
@@ -86,6 +87,7 @@ func _build_pause_menu() -> void:
 
 
 func _toggle_pause() -> void:
+	Audio.play("ui_click", -8.0)
 	var paused := not get_tree().paused
 	get_tree().paused = paused
 	_pause_layer.visible = paused

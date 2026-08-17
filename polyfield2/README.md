@@ -165,8 +165,10 @@ change that quietly doubles the draw calls is visible immediately.
 
 ## Known gaps
 
-- **No sound.** Nothing is downloaded or wired yet; this is the largest
-  remaining gap.
+- **Sound is synthesised, not recorded.** No CC0 game-audio library proved
+  reachable without an API key, so `tools/texgen/gen_sounds.py` builds the
+  bank from noise transients, resonant bodies and decay tails. Replacing it
+  with recorded audio needs only new WAVs of the same names.
 
 - Soldier proportions read correctly but the legs are still slightly long
   against the torso; a proportion pass would improve the silhouette.

@@ -41,6 +41,7 @@ var _viewmodel: Node3D = null
 var _viewmodel_anim: AnimationPlayer = null
 var _viewmodel_state: String = ""
 var _viewmodel_lock: float = 0.0
+var _last_step_cycle: int = -1
 
 var _weapons: Array[Dictionary] = []
 var _weapon_index: int = 0
@@ -217,6 +218,13 @@ func _apply_bob(delta: float) -> void:
 	_camera.position.y = sin(_bob_time * 2.0) * amount
 	_camera.position.x = sin(_bob_time) * amount * 0.6
 
+	# One step per bob cycle, driven by the same phase the camera uses so the
+	# sound lands when the foot does.
+	var cycle := floori(_bob_time / PI)
+	if is_on_floor() and planar > 0.8 and cycle != _last_step_cycle:
+		_last_step_cycle = cycle
+		Audio.play(Audio.random_step(), -14.0)
+
 
 func _weapon() -> Dictionary:
 	return _weapons[_weapon_index]
@@ -321,6 +329,13 @@ func begin_reload() -> void:
 	if int(weapon["loaded"]) >= int(weapon["mag"]) or int(weapon["reserve"]) <= 0:
 		return
 	_reload_timer = float(weapon["reload"])
+	Audio.play("reload_out", -6.0)
+	# The magazine seats and the bolt drops partway through the animation, not
+	# at the start, so those two are delayed to match what is on screen.
+	get_tree().create_timer(float(weapon["reload"]) * 0.62).timeout.connect(
+		func() -> void: Audio.play("reload_in", -6.0))
+	get_tree().create_timer(float(weapon["reload"]) * 0.88).timeout.connect(
+		func() -> void: Audio.play("bolt", -8.0))
 	# Hold locomotion off for the length of the clip so the reload plays out.
 	_play_viewmodel("vm_reload", true)
 	_viewmodel_lock = 2.0
@@ -379,6 +394,7 @@ func _fire(weapon: Dictionary) -> void:
 
 	_play_viewmodel("vm_fire", true)
 	_viewmodel_lock = 0.42
+	Audio.play("fire_%s" % str(weapon["id"]).replace("wpn_", ""), -3.0)
 
 	var kick: Vector2 = weapon["recoil"]
 	var spread := float(weapon["spread"]) * (0.4 if _aiming else 1.0)
@@ -392,6 +408,7 @@ func _fire(weapon: Dictionary) -> void:
 			hit.call("take_damage", float(weapon["damage"]), self)
 			if _hud != null:
 				_hud.call("flash_hit")
+			Audio.play("hit_marker", -10.0)
 
 
 ## Re-emit the full HUD-facing state. Needed because the player is ready
