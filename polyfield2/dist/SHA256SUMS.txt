@@ -1,1 +1,1 @@
-6aa0f6b833ec0d0ff01b2bb5ac80a1f2be182939f2498695d35beee0d6b58310  polyfield2-ridgeline-v0.6.0.apk
+f5a08686e700b097def5d00089da8e47a9b91ed1852197a176ac29069677f912  polyfield2-ridgeline-v0.7.0.apk

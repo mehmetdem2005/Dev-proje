@@ -200,9 +200,13 @@ def main():
 
     exported = []
     species = [
-        ("tree_pine", 7101, 8.5, 0.22, 3, 0.75),
-        ("tree_oak", 7203, 6.4, 0.30, 3, 1.25),
-        ("tree_scrub", 7307, 4.2, 0.16, 2, 1.0),
+        # Shorter, thicker, fuller than the first pass. A 8.5 m trunk 22 cm
+        # across carrying a 0.75-scale crown reads as a sapling at any distance
+        # the player actually sees it from — the crown is what says "tree", and
+        # it has to be wide enough to survive being 100 m away.
+        ("tree_pine", 7101, 7.6, 0.30, 3, 1.15),
+        ("tree_oak", 7203, 6.0, 0.38, 3, 1.55),
+        ("tree_scrub", 7307, 3.8, 0.22, 2, 1.25),
     ]
     for index, (name, seed, height, radius, depth, leaf_scale) in enumerate(species):
         parts = make_tree(name, seed, height, radius, depth, leaf_scale)

@@ -15,6 +15,15 @@ var _quality_buttons: Array[Button] = []
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+
+	# The capture harness lives inside the match scene, so a --shot run that
+	# stops at the title screen never arms it and never exits — it just sits
+	# here until something kills it. Boot straight into the match instead.
+	if OS.get_cmdline_user_args().has("--shot"):
+		print("[Menu] --shot given, entering the match directly")
+		call_deferred("_on_play")
+		return
+
 	_build()
 	_show(Page.TITLE)
 

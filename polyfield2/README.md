@@ -122,8 +122,9 @@ Eleven clips: `idle`, `walk`, `run`, `crouch_idle`, `crouch_walk`, `aim`,
   from actual movement state.
 
 Level build cost at startup: ~200 ms for 16 terrain chunks, 190 rocks, 114
-trench bays, 47 sandbag sets, 25 props and 5 zones. Repeated geometry is drawn
-through `MultiMeshInstance3D`, which keeps the whole scene at ~154 draw calls.
+trench bays, 47 sandbag sets, 30 props (including the five zone structures),
+1 720 vegetation instances and 5 zones. Repeated geometry is drawn through
+`MultiMeshInstance3D`, which keeps the whole scene at ~154 draw calls.
 
 ## APK
 
@@ -151,12 +152,13 @@ build-tools; no Gradle, no NDK.
 | ABI | arm64-v8a only |
 | Target SDK | 36 |
 | Renderer | Vulkan, Forward Mobile |
-| Size | ~45 MB debug, ~43 MB release |
+| Size | ~64 MB debug |
 | Permissions | VIBRATE, WAKE_LOCK — no network, no storage |
 
 **The keystore is a debug key.** It is fine for sideloading and testing and is
 not usable as a Play Store upload key; generate a real one before publishing.
-`build/` is gitignored — a 45 MB binary does not belong in the repository.
+`build/` is gitignored. Released builds are committed under `dist/` because
+GitHub Release creation is unavailable for this repository; see `dist/README.md`.
 
 ## Verification
 
@@ -172,6 +174,11 @@ xvfb-run -a godot --resolution 1280x720 -- --shot out.png --shot-frame 150
 
 The in-game one also prints frame stats (objects, primitives, draw calls) so a
 change that quietly doubles the draw calls is visible immediately.
+
+`--shot` makes the menu enter the match directly. The capture harness is
+created by the match scene, so without that a `--shot` run stops at the title
+screen, never arms, and hangs until something kills it — which is exactly what
+it did once the menu became the boot scene.
 
 ## Known gaps
 
