@@ -153,8 +153,55 @@ Eleven clips: `idle`, `walk`, `run`, `crouch_idle`, `crouch_walk`, `aim`,
 
 Level build cost at startup: ~200 ms for 16 terrain chunks, 190 rocks, 114
 trench bays, 47 sandbag sets, 30 props (including the five zone structures),
-1 720 vegetation instances and 5 zones. Repeated geometry is drawn through
-`MultiMeshInstance3D`, which keeps the whole scene at ~154 draw calls.
+1 682 vegetation instances and 5 zones.
+
+## Performance
+
+Repeated geometry is drawn through `MultiMeshInstance3D`, **spatially chunked**.
+That second part is the whole game.
+
+A MultiMesh holding every rock on the map has an AABB the size of the map, so
+the renderer can never frustum-cull it, and `visibility_range_end` on it
+measures from the map centre. One MultiMesh per mesh type therefore meant every
+rock, trench module, sandbag and tree was submitted every frame no matter where
+the player stood or which way they faced. Measured at the spawn point, that was
+**1 120 952 primitives per frame** — roughly double the map's 487k triangles,
+because the directional shadow pass draws all of it a second time.
+
+`_chunked()` buckets instances into cells and builds one MultiMesh per (cell,
+mesh), with instance transforms stored relative to the cell so each AABB hugs
+its cell. Cells behind the player are cut by the frustum, distant ones by
+range. Cell size is the tuning knob: too large and culling is coarse, too small
+and draw calls grow faster than geometry falls.
+
+| | before | after |
+| --- | --- | --- |
+| primitives / frame | 1 120 952 | **408 272** |
+| draw calls | 255 | 289 |
+| objects | 586 | 620 |
+
+What else moved, in order of what it was worth:
+
+- **Shadow casting off** for trench modules, sandbags, foliage cards and small
+  props. Only terrain, rocks, trunks, buildings and soldiers cast. The shadow
+  pass was drawing the map twice.
+- **`VISIBILITY_RANGE_FADE_SELF` removed.** It needs the material to blend,
+  which pushes opaque geometry into the transparent pass and costs more fill
+  than the culling saves. A hard cut at 150 m is invisible.
+- **Per-family view distance.** Grass dies at 48 m, bushes 90 m, trenches 95 m,
+  trees 180 m. Nobody sees a blade of grass at 90 m, and trench duckboards are
+  at the bottom of a 2.6 m channel.
+- **The trench bay was the heaviest thing on the map** — 756 triangles repeated
+  114 times, more than the terrain. Coarser revetment planks and half the
+  duckboard slats took it to 604 with no visible change.
+- **Soldiers stop animating past 160 m.** An `AnimationPlayer` re-poses its
+  skeleton every frame whether or not the mesh is on screen; the AI keeps
+  running, only the pose stops.
+
+`[Budget]` prints the worst-case triangle count per category at every level
+build, sorted. Guessing which category dominates a frame is how you spend an
+afternoon optimising the wrong thing — the trench bays were not the obvious
+suspect, and they were bigger than every tree on the map put together.
 
 ## APK
 
@@ -178,7 +225,7 @@ build-tools; no Gradle, no NDK.
 | --- | --- |
 | Package | `com.mehmetdem.polyfield2` |
 | Label | Polyfield 2 |
-| Version | 0.8.0 (code 8) |
+| Version | 0.9.0 (code 9) |
 | ABI | arm64-v8a only |
 | Target SDK | 36 |
 | Renderer | Vulkan, Forward Mobile |

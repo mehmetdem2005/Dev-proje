@@ -20,6 +20,18 @@ var layout: Dictionary = {}
 var stats: Dictionary = {}
 
 var _static_body: StaticBody3D
+var _chunk_root: Node3D
+var _budget: Dictionary = {}
+
+## Cell size in metres for each family of instanced geometry, and how far it is
+## drawn. Vegetation gets the finest grid because it is alpha-scissor and by far
+## the most expensive thing per pixel; rocks and fortifications are opaque and
+## fewer, so a coarser grid keeps their draw-call count down.
+const CHUNK := {
+	"vegetation": 56.0,
+	"rocks": 96.0,
+	"forts": 64.0,
+}
 
 
 ## Called by Main, not from _ready(). Children are ready before their parent,
@@ -36,6 +48,10 @@ func build() -> void:
 	_static_body.name = "WorldCollision"
 	add_child(_static_body)
 
+	_chunk_root = Node3D.new()
+	_chunk_root.name = "Chunks"
+	add_child(_chunk_root)
+
 	_build_terrain()
 	_build_rocks()
 	_build_trenches()
@@ -46,7 +62,25 @@ func build() -> void:
 
 	stats["build_ms"] = Time.get_ticks_msec() - started
 	print("[Level] %s" % stats)
+	_report_budget()
 	level_ready.emit(stats)
+
+
+## Where the triangles actually are, worst case (nothing culled). Printed at
+## build so a change that quietly triples a category is visible immediately.
+func _report_budget() -> void:
+	var rows: Array = []
+	var total: int = int(stats.get("terrain_tris", 0))
+	for name: String in _budget:
+		rows.append([name, _budget[name]])
+		total += int(_budget[name]["tris"])
+	rows.sort_custom(func(a, b): return int(a[1]["tris"]) > int(b[1]["tris"]))
+
+	print("[Budget] worst-case %d tris (terrain %d)" % [total, stats.get("terrain_tris", 0)])
+	for row: Array in rows.slice(0, 8):
+		var info: Dictionary = row[1]
+		print("[Budget]   %-22s %5d x %5d = %7d" % [row[0], info["instances"],
+			info["each"], info["tris"]])
 
 
 func _read_layout() -> Dictionary:
@@ -130,24 +164,76 @@ func _triangles_of(mesh: Mesh) -> int:
 	return total
 
 
-func _multimesh(mesh: Mesh, transforms: Array[Transform3D], node_name: String,
-		material: Material) -> MultiMeshInstance3D:
-	var multi := MultiMesh.new()
-	multi.transform_format = MultiMesh.TRANSFORM_3D
-	multi.mesh = mesh
-	multi.instance_count = transforms.size()
-	for index in transforms.size():
-		multi.set_instance_transform(index, transforms[index])
+## Spatially partition instances into cells, one MultiMesh per (cell, mesh).
+##
+## This is the single most important thing in the file. A MultiMesh holding
+## every rock on the map has an AABB the size of the map, so the renderer can
+## never frustum-cull it and `visibility_range_end` measures from the map
+## centre — which means every rock, trench module, sandbag and tree was
+## submitted every frame no matter where the player stood or which way they
+## faced. That was 1.12 million primitives per frame at spawn.
+##
+## Cut into cells, each MultiMesh has a tight AABB: the ones behind the player
+## are culled by the frustum and the distant ones by range. It costs more draw
+## calls per visible cell and saves most of the geometry, which is the right
+## trade on a phone — a mobile GPU will take a few hundred draw calls far more
+## happily than a million triangles.
+##
+## Cell size is the tuning knob. Too large and culling is coarse; too small and
+## the draw-call count grows faster than the geometry falls.
+func _chunked(mesh: Mesh, transforms: Array[Transform3D], node_name: String,
+		material: Material, cell_metres: float, view_distance: float,
+		casts_shadow: bool = true) -> int:
+	if transforms.is_empty():
+		return 0
 
-	var instance := MultiMeshInstance3D.new()
-	instance.name = node_name
-	instance.multimesh = multi
-	if material != null:
-		instance.material_override = material
-	# One draw call for every rock on the map instead of 190.
-	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-	add_child(instance)
-	return instance
+	# Budget accounting. Guessing which category dominates the frame is how you
+	# spend an afternoon optimising the wrong thing.
+	var tris := _triangles_of(mesh) * transforms.size()
+	_budget[node_name] = {"instances": transforms.size(), "tris": tris,
+		"each": _triangles_of(mesh)}
+
+	var cells: Dictionary = {}
+	for transform in transforms:
+		var key := Vector2i(floori(transform.origin.x / cell_metres),
+			floori(transform.origin.z / cell_metres))
+		if not cells.has(key):
+			cells[key] = [] as Array[Transform3D]
+		cells[key].append(transform)
+
+	for key: Vector2i in cells:
+		var group: Array[Transform3D] = cells[key]
+		var centre := Vector3((key.x + 0.5) * cell_metres, 0.0, (key.y + 0.5) * cell_metres)
+
+		var multi := MultiMesh.new()
+		multi.transform_format = MultiMesh.TRANSFORM_3D
+		multi.mesh = mesh
+		multi.instance_count = group.size()
+		for index in group.size():
+			# Stored relative to the cell, so the AABB hugs the cell rather than
+			# stretching back to the world origin.
+			var local := group[index]
+			multi.set_instance_transform(index,
+				Transform3D(local.basis, local.origin - centre))
+
+		var instance := MultiMeshInstance3D.new()
+		instance.name = "%s_%d_%d" % [node_name, key.x, key.y]
+		instance.multimesh = multi
+		instance.position = centre
+		if material != null:
+			instance.material_override = material
+		instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if casts_shadow \
+			else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		if view_distance > 0.0:
+			instance.visibility_range_end = view_distance
+			instance.visibility_range_end_margin = cell_metres
+		# Deliberately no fade: VISIBILITY_RANGE_FADE_SELF needs the material to
+		# blend, which pushes opaque geometry into the transparent pass and costs
+		# more fill than the culling saves. A hard cut this far out is invisible.
+		instance.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
+		_chunk_root.add_child(instance)
+
+	return transforms.size()
 
 
 func _build_rocks() -> void:
@@ -174,10 +260,11 @@ func _build_rocks() -> void:
 		_add_collision(shapes[key], transform)
 
 	var placed := 0
+	var material := MaterialLibrary.get_material("rock_granite")
+	var distance := float(Settings.preset()["rock_distance"])
 	for key: String in per_variant:
-		var material := MaterialLibrary.get_material("rock_granite")
-		_multimesh(meshes[key], per_variant[key], "Rocks_%s" % key, material)
-		placed += per_variant[key].size()
+		placed += _chunked(meshes[key], per_variant[key], "Rocks_%s" % key, material,
+			CHUNK["rocks"], distance)
 	stats["rocks"] = placed
 
 
@@ -220,12 +307,13 @@ func _build_trenches() -> void:
 		bags.append(transform)
 		_add_collision(wall_shape, Transform3D(basis, position + Vector3.UP * 0.25))
 
+	var distance := float(Settings.preset()["fort_distance"])
 	if meshes.has("trench_straight_timber"):
-		_multimesh(meshes["trench_straight_timber"], timber, "TrenchTimber",
-			MaterialLibrary.get_material("wood_plank"))
+		_chunked(meshes["trench_straight_timber"], timber, "TrenchTimber",
+			MaterialLibrary.get_material("wood_plank"), CHUNK["forts"], distance, false)
 	if meshes.has("trench_straight_bags"):
-		_multimesh(meshes["trench_straight_bags"], bags, "TrenchBags",
-			MaterialLibrary.get_material("sandbag_burlap"))
+		_chunked(meshes["trench_straight_bags"], bags, "TrenchBags",
+			MaterialLibrary.get_material("sandbag_burlap"), CHUNK["forts"], distance, false)
 	stats["trench_modules"] = modules.size()
 
 
@@ -251,10 +339,11 @@ func _build_sandbags() -> void:
 		_add_collision(shape, Transform3D(basis, position + Vector3.UP * 0.4))
 
 	var placed := 0
+	var material := MaterialLibrary.get_material("sandbag_burlap")
+	var distance := float(Settings.preset()["fort_distance"])
 	for kind: String in grouped:
-		_multimesh(meshes[kind], grouped[kind], "Sandbags_%s" % kind,
-			MaterialLibrary.get_material("sandbag_burlap"))
-		placed += grouped[kind].size()
+		placed += _chunked(meshes[kind], grouped[kind], "Sandbags_%s" % kind,
+			material, CHUNK["forts"], distance, false)
 	stats["sandbags"] = placed
 
 
@@ -289,6 +378,10 @@ func _build_props() -> void:
 		else:
 			continue
 
+		# Buildings and the capture masts are landmarks — a player navigates by
+		# them, so they stay visible across the map. A crate is not a landmark.
+		var is_landmark := kind in ["bunker", "watchtower", "ruin", "capture_mast"]
+
 		for part: String in parts:
 			if not meshes.has(part):
 				continue
@@ -297,6 +390,10 @@ func _build_props() -> void:
 			instance.mesh = meshes[part]
 			instance.transform = Transform3D(basis, position)
 			MaterialLibrary.apply_to(instance)
+			if not is_landmark:
+				instance.visibility_range_end = float(Settings.preset()["prop_distance"]) * 0.6
+				instance.visibility_range_end_margin = 8.0
+				instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			container.add_child(instance)
 		if kind in ["bunker", "watchtower", "ruin"]:
 			# Buildings need real collision: the player walks into and behind
@@ -391,27 +488,29 @@ func _build_vegetation() -> void:
 			grouped[part].append(transform)
 
 	var placed := 0
+	var base_distance := float(Settings.preset()["prop_distance"])
 	for part: String in grouped:
-		var material_name := "leaf" if part.ends_with("_leaves") or part.begins_with("bush") \
-			or part.begins_with("grass") else "bark"
-		var instance := _multimesh(meshes[part], grouped[part], "Veg_%s" % part,
-			MaterialLibrary.get_material(material_name))
+		var is_foliage := part.ends_with("_leaves") or part.begins_with("bush") \
+			or part.begins_with("grass")
+		var material_name := "leaf" if is_foliage else "bark"
+
+		# A tree read at 180 m is scenery; a tuft of grass at 180 m is overdraw.
+		# Trees get the longer range — capped, not simply doubled. Ground cover
+		# is cut much shorter still: it is alpha-scissor, the most expensive
+		# thing per pixel on a phone, and nobody sees a blade of grass at 90 m.
+		var distance := base_distance
+		if part.begins_with("tree"):
+			distance = min(base_distance * 1.5, 180.0)
+		elif part.begins_with("grass"):
+			distance = min(base_distance * 0.45, 48.0)
+		elif part.begins_with("bush"):
+			distance = min(base_distance * 0.8, 90.0)
+
 		# Foliage casting shadows doubles its cost for very little; the trunks
 		# still cast, which is what grounds the tree.
-		if material_name == "leaf":
-			instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		# A tree read at 180 m is scenery; a tuft of grass at 180 m is overdraw.
-		# Trees get the longer range — but capped, not simply doubled. Foliage is
-		# alpha-scissor, the most expensive thing on the screen of a phone, and
-		# drawing every crown on a 192 m map at once is how the first build
-		# earned its stutter.
-		var distance := float(Settings.preset()["prop_distance"])
-		if part.begins_with("tree"):
-			distance = min(distance * 1.5, 180.0)
-		instance.visibility_range_end = distance
-		instance.visibility_range_end_margin = 12.0
-		instance.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
-		placed += grouped[part].size()
+		placed += _chunked(meshes[part], grouped[part], "Veg_%s" % part,
+			MaterialLibrary.get_material(material_name), CHUNK["vegetation"],
+			distance, not is_foliage)
 	stats["vegetation"] = placed
 
 

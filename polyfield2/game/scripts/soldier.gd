@@ -113,6 +113,12 @@ func _build_visual() -> void:
 			_animation = node
 		elif node is MeshInstance3D:
 			MaterialLibrary.apply_to(node)
+			# A soldier past the fort draw distance is a few pixels tall. Culling
+			# the mesh also stops Godot skinning it, which is the expensive half.
+			var mesh_instance := node as MeshInstance3D
+			mesh_instance.visibility_range_end = 160.0
+			mesh_instance.visibility_range_end_margin = 12.0
+			mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 		queue.append_array(node.get_children())
 
 	if _animation != null:
@@ -158,6 +164,27 @@ func _has_line_of_sight(who: Node3D) -> bool:
 	if not _eyes.is_colliding():
 		return true
 	return _eyes.get_collider() == who
+
+
+## Stop animating soldiers nobody can see.
+##
+## An AnimationPlayer keeps evaluating its tracks and re-posing the skeleton
+## every frame whether or not the mesh is on screen, and a skinned pose is not
+## free — sixteen of them was real CPU spent on soldiers behind a hill. The AI
+## keeps running; only the pose stops, so a bot never stands still because of
+## this, it just stops interpolating a pose no one is looking at.
+##
+## Re-checked on the scan timer rather than per frame, so it costs one distance
+## comparison a second per soldier.
+func _throttle_animation() -> void:
+	if _animation == null:
+		return
+	var camera := get_viewport().get_camera_3d()
+	if camera == null:
+		return
+	var far := global_position.distance_squared_to(camera.global_position) > 160.0 * 160.0
+	if _animation.active == far:
+		_animation.active = not far
 
 
 func _scan_for_enemy() -> void:
@@ -319,6 +346,7 @@ func _physics_process(delta: float) -> void:
 		# second is well inside human reaction time anyway.
 		_scan_timer = _rng.randf_range(0.55, 0.85)
 		_scan_for_enemy()
+		_throttle_animation()
 
 	if health < 35.0 and _enemy != null:
 		_state = State.COVER

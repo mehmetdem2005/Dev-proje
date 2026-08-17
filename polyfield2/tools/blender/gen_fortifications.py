@@ -131,7 +131,10 @@ def make_trench_section(name="trench_straight", seed=8300):
     # Revetment: one strip mesh per side, with per-plank depth offsets that
     # read as separate boards. Modelling 30 individual bevelled planks looked
     # identical and cost twenty times the triangles.
-    plank_width = 0.26
+    # 0.26 m planks gave a 4 m bay 15 columns a side. The board joints are read
+    # from the bark texture, not the silhouette, and this module is repeated 114
+    # times — it was the single heaviest thing on the map at 756 triangles.
+    plank_width = 0.40
     count = int(TRENCH_LENGTH / plank_width)
     for side in (-1, 1):
         bm = bmesh.new()
@@ -163,7 +166,9 @@ def make_trench_section(name="trench_straight", seed=8300):
             parts.append(beam)
 
     # Duckboard floor: slats on two bearers.
-    slat_count = int(TRENCH_LENGTH / 0.30)
+    # Duckboards sit at the bottom of a 2.6 m channel. Nobody counts the slats
+    # from outside the trench, and inside it half as many still reads as a floor.
+    slat_count = int(TRENCH_LENGTH / 0.55)
     for index in range(slat_count):
         y = (index - (slat_count - 1) * 0.5) * 0.30
         slat = _bevelled_box(f"{name}_slat_{index}",

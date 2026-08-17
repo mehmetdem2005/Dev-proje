@@ -24,6 +24,8 @@ const PRESETS := {
 		"bots": 8,
 		"vegetation": 0.45,
 		"prop_distance": 90.0,
+		"rock_distance": 130.0,
+		"fort_distance": 70.0,
 		"fps_cap": 30,
 	},
 	Quality.MEDIUM: {
@@ -37,6 +39,8 @@ const PRESETS := {
 		"bots": 12,
 		"vegetation": 0.75,
 		"prop_distance": 140.0,
+		"rock_distance": 180.0,
+		"fort_distance": 95.0,
 		"fps_cap": 60,
 	},
 	Quality.HIGH: {
@@ -50,6 +54,8 @@ const PRESETS := {
 		"bots": 16,
 		"vegetation": 1.0,
 		"prop_distance": 220.0,
+		"rock_distance": 260.0,
+		"fort_distance": 130.0,
 		"fps_cap": 60,
 	},
 }
