@@ -322,15 +322,29 @@ func _build_vegetation() -> void:
 		return
 
 	var density := float(Settings.preset()["vegetation"])
+	# Order matters: the layout records a species as an index, and it indexed
+	# against layout.py TREE_SPECIES. Reordering this list here silently plants
+	# snags where the map recorded pines.
 	var species := {
-		"tree": ["tree_pine", "tree_oak", "tree_scrub"],
+		"tree": ["tree_pine", "tree_fir", "tree_oak", "tree_birch",
+			"tree_scrub", "tree_dead"],
 		"bush": ["bush_low", "bush_tall"],
 		"grass": ["grass_tuft"],
 	}
 	var grouped: Dictionary = {}
-	var trunk_shape := CylinderShape3D.new()
-	trunk_shape.radius = 0.34
-	trunk_shape.height = 5.0
+
+	# One collider per species rather than one for all of them: a birch is half
+	# the girth of an oak, and giving a 3.6 m scrub the oak's 5 m cylinder walls
+	# the player off from a shrub they can see straight over. Shapes are shared
+	# between every instance of a species, so this is six resources, not 260.
+	var trunk_shapes: Dictionary = {}
+	for entry: Array in [["tree_pine", 0.30, 6.0], ["tree_fir", 0.26, 5.0],
+			["tree_oak", 0.44, 4.4], ["tree_birch", 0.22, 5.4],
+			["tree_scrub", 0.36, 2.4], ["tree_dead", 0.32, 4.6]]:
+		var shape := CylinderShape3D.new()
+		shape.radius = float(entry[1])
+		shape.height = float(entry[2])
+		trunk_shapes[entry[0]] = shape
 
 	var generator := RandomNumberGenerator.new()
 	generator.seed = 20260814
@@ -358,8 +372,14 @@ func _build_vegetation() -> void:
 		# instanced in lockstep or the crown floats away from its trunk.
 		var parts: Array[String] = []
 		if kind == "tree":
+			# The snag has no crown at all, so its `_leaves` mesh does not exist;
+			# the lookup below skips whatever is missing.
 			parts = ["%s_trunk" % names[variant], "%s_leaves" % names[variant]]
-			_add_collision(trunk_shape, Transform3D(basis, position + Vector3.UP * 2.5))
+			var shape: Shape3D = trunk_shapes.get(names[variant], null)
+			if shape != null:
+				var half: float = (shape as CylinderShape3D).height * 0.5 * scale
+				_add_collision(shape, Transform3D(basis.scaled(Vector3(scale, scale, scale)),
+					position + Vector3.UP * half))
 		else:
 			parts = [names[variant]]
 

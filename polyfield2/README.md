@@ -92,11 +92,41 @@ turned the first pass into a uniform grey moonscape.
 | `fortifications.glb` | revetted trench bay, sandbag wall/stack, hedgehog, dugout roof | 76–1 108 |
 | `props.glb` | crate, barrel, ammo box, capture mast + banner | 102–308 |
 | `weapons.glb` | rifle, SMG, LMG, pistol, launcher | 380–736 |
+| `buildings.glb` | bunker, watchtower, ruin | 528 / 1 452 / 616 |
+| `vegetation.glb` | 6 tree species, 2 bushes, grass tuft | 156–1 208 per tree |
 | `soldier_ranger.glb` / `soldier_legion.glb` | rigged, skinned, 11 clips | 1 024 |
 
 Textures are deliberately **not** embedded in the GLBs. All thirteen sets are
 shared, so embedding would copy megabytes of PNG into every file; the GLBs
 carry material *names* and `MaterialLibrary` binds the real materials at load.
+
+### Trees — `tools/blender/gen_trees.py`
+
+Six species, built by **different growth models** rather than by feeding one
+model different numbers. That was the flaw in the first pass: pine, oak and
+scrub all came out of the same recursive fork, so they were one tree at three
+scales however the parameters were tuned.
+
+| Species | Habit | Triangles |
+| --- | --- | --- |
+| `tree_pine` | conifer, single leader, whorled branches, high crown | 924 |
+| `tree_fir` | conifer, denser, skirted to the ground | 1 140 |
+| `tree_oak` | broadleaf, low fork, wide spreading crown | 1 208 |
+| `tree_birch` | broadleaf, slender curved bole, light high crown | 730 |
+| `tree_scrub` | multi-stemmed shrub-tree | 438 |
+| `tree_dead` | bare snag, broken top, no foliage at all | 156 |
+
+A conifer keeps its leader and narrows towards the top (excurrent); a broadleaf
+loses its leader at the first fork and spreads into competing scaffolds
+(decurrent). Those two habits are most of what separates them at a hundred
+metres, where the crown is a few pixels tall.
+
+The foliage atlas (`tools/texgen/leaf_atlas.py`) is a 4×4 grid with one
+*family* per row — broadleaf sprigs, needle sprays, dry scrub twigs, grass
+blades — each with its own palette. A conifer sampling a broadleaf sprig reads
+as a broadleaf no matter how its branches are arranged, so the row index is
+part of the species definition. Scatter weights lean towards the cheap species,
+which is what keeps 260 trees affordable at ~206k triangles total.
 
 ### Rig and animation
 
@@ -148,11 +178,11 @@ build-tools; no Gradle, no NDK.
 | --- | --- |
 | Package | `com.mehmetdem.polyfield2` |
 | Label | Polyfield 2 |
-| Version | 0.7.0 (code 7) |
+| Version | 0.8.0 (code 8) |
 | ABI | arm64-v8a only |
 | Target SDK | 36 |
 | Renderer | Vulkan, Forward Mobile |
-| Size | ~64 MB debug |
+| Size | ~65 MB debug |
 | Permissions | VIBRATE, WAKE_LOCK — no network, no storage |
 
 **The keystore is a debug key.** It is fine for sideloading and testing and is

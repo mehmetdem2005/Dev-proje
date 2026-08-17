@@ -52,6 +52,12 @@ sys.path.insert(0, os.getcwd())
 sys.argv = ['build_textures.py', '--size', '${TEXTURE_SIZE}']
 runpy.run_path('build_textures.py', run_name='__main__')
 " ) | grep -vE '^(Blender |Read prefs|found bundled)|^$' || true
+
+	# The one map that stays procedural: the CC0 libraries ship tiling surfaces,
+	# not alpha-masked foliage. gen_trees.py reads its row layout, so the two
+	# have to be rebuilt together.
+	echo "--- foliage atlas ---"
+	run_blender "$ROOT/tools/texgen/leaf_atlas.py"
 fi
 
 echo "--- terrain and layout ---"

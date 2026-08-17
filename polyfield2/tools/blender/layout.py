@@ -400,6 +400,14 @@ def rock_scatter(xs, ys, height, count=190, seed=SEED):
     return placements
 
 
+#: Tree species, in the order gen_trees.py exports them and level_builder.gd
+#: indexes them. All three lists are one list conceptually; if they drift apart
+#: the map places pines where it recorded oaks.
+TREE_SPECIES = ["tree_pine", "tree_fir", "tree_oak", "tree_birch",
+                "tree_scrub", "tree_dead"]
+TREE_MIX = [0.26, 0.20, 0.13, 0.11, 0.18, 0.12]
+
+
 def vegetation_scatter(xs, ys, height, seed=SEED):
     """Scatter trees, bushes and grass.
 
@@ -435,7 +443,11 @@ def vegetation_scatter(xs, ys, height, seed=SEED):
         x = generator.uniform(-MAP_SIZE * 0.47, MAP_SIZE * 0.47)
         y = generator.uniform(-MAP_SIZE * 0.47, MAP_SIZE * 0.47)
 
-        clearance = {"tree": 6.0, "bush": 3.0, "grass": 1.6}[kind]
+        # Trees used to keep 6 m off every trench, which cleared a 12 m lane
+        # around each line and left the fighting ground bare — exactly where the
+        # player spends the match. 3 m is enough that no trunk grows out of a
+        # firing bay while the trench still runs through woodland.
+        clearance = {"tree": 3.0, "bush": 2.0, "grass": 1.2}[kind]
         blocked = False
         for points in trench_points:
             if _polyline_distance(np.array([[x]]), np.array([[y]]), points)[0, 0] < clearance:
@@ -443,7 +455,9 @@ def vegetation_scatter(xs, ys, height, seed=SEED):
                 break
         if blocked:
             continue
-        if any(math.hypot(x - zx, y - zy) < (10.0 if kind == "tree" else 4.0)
+        # A tree standing on the flag blocks the fight the zone exists to
+        # create, but the approach to it should still have cover.
+        if any(math.hypot(x - zx, y - zy) < (7.0 if kind == "tree" else 3.5)
                for _n, zx, zy, _r, _o in ZONES):
             continue
         if any(math.hypot(x - bx, y - by) < BASE_FLAT_RADIUS * (1.0 if kind == "tree" else 0.7)
@@ -463,7 +477,14 @@ def vegetation_scatter(xs, ys, height, seed=SEED):
         if density < threshold and generator.random() > 0.18:
             continue
 
-        variant = int(generator.integers(0, 3 if kind == "tree" else 2))
+        if kind == "tree":
+            # Weighted, not uniform: the two conifers and the oak carry ~900-1200
+            # triangles each, the snag 156. Leaning the mix towards the cheap
+            # species keeps 260 trees affordable, and a highland ridge should be
+            # mostly conifer with scattered broadleaf anyway.
+            variant = int(generator.choice(len(TREE_SPECIES), p=TREE_MIX))
+        else:
+            variant = int(generator.integers(0, 2))
         scale = float(generator.uniform(0.75, 1.35) if kind == "tree"
                       else generator.uniform(0.7, 1.4))
         placements.append({

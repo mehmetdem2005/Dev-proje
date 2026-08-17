@@ -7,7 +7,7 @@ konur. Günlük yapılar `../build/` altında kalır ve gitignore'dadır.
 
 | Dosya | Sürüm | Boyut | SHA-256 |
 | --- | --- | --- | --- |
-| `polyfield2-ridgeline-v0.7.0.apk` | 0.7.0 (code 7) | 64 MB | `f5a08686e700b097def5d00089da8e47a9b91ed1852197a176ac29069677f912` |
+| `polyfield2-ridgeline-v0.8.0.apk` | 0.8.0 (code 8) | 65 MB | `f4a8d7258a73ab88ebb1fc9c39b062622f91c9b5616a55787791b234bb751e22` |
 
 Yalnızca en son sürüm tutulur — her binary git geçmişinde kalıcı olduğu için
 eskiler siliniyor.
