@@ -50,6 +50,17 @@ const GI_DISABLED := 0
 const COLLISION_DISABLED := 0
 const COLLISION_DYNAMIC_GAME := 1
 
+## Pre-generated mobile shader. Terrain3D assembles its shader from the enabled
+## features at runtime; this is that output for the mobile feature set, with the
+## anisotropic samplers swapped for plain trilinear. Terrain3D has no
+## non-anisotropic path of its own — both of its `texture_filtering` options are
+## anisotropic — so the only way to get it is an override.
+##
+## It is baked against world_background NONE, auto_shader off and dual_scaling
+## off. Turn any of those back on and this shader will not reflect it:
+## regenerate with tools/dump_shader.tscn or set `use_mobile_shader = false`.
+const MOBILE_SHADER := "res://mobile/terrain3d_mobile.gdshader"
+
 ## Per-tier settings. `mesh_size` is quads per clipmap tile and `spacing` is
 ## metres per vertex, so the two together set both the vertex density and how
 ## far a given number of LODs reaches.
@@ -63,6 +74,7 @@ const TIERS := {
 		"projection": false,
 		"macro_variation": false,
 		"collision_shape_size": 32,
+		"bias_distance": 96.0,
 	},
 	Tier.MEDIUM: {
 		"mesh_size": 24,
@@ -73,6 +85,7 @@ const TIERS := {
 		"projection": false,
 		"macro_variation": false,
 		"collision_shape_size": 24,
+		"bias_distance": 160.0,
 	},
 	Tier.HIGH: {
 		"mesh_size": 32,
@@ -83,6 +96,7 @@ const TIERS := {
 		"projection": true,
 		"macro_variation": true,
 		"collision_shape_size": 16,
+		"bias_distance": 320.0,
 	},
 }
 
@@ -94,6 +108,8 @@ const TIERS := {
 ## Terrain collision costs CPU on every shape rebuild as the player moves.
 ## Leave on unless you drive the player height from the heightmap yourself.
 @export var collision_enabled: bool = true
+## Replace Terrain3D's generated shader with the trilinear mobile build.
+@export var use_mobile_shader: bool = true
 ## Tick to apply. Untick happens automatically; it is a button, not a state.
 @export var apply: bool = false:
 	set(value):
@@ -115,7 +131,8 @@ func apply_to_target() -> Dictionary:
 		push_warning("[Terrain3DMobile] no Terrain3D found — set terrain_path or " +
 			"make this a child of one")
 		return {}
-	var report := configure(terrain, world_size_m, tier, collision_enabled)
+	var report := configure(terrain, world_size_m, tier, collision_enabled,
+		use_mobile_shader)
 	print(format_report(report))
 	return report
 
@@ -158,7 +175,7 @@ static func lods_for(world_size: float, mesh_size: int, spacing: float,
 
 ## Configure a Terrain3D node. Returns a report describing what it now is.
 static func configure(terrain: Node, world_size: float, quality: Tier,
-		collision: bool = true) -> Dictionary:
+		collision: bool = true, mobile_shader: bool = true) -> Dictionary:
 	if terrain == null or terrain.get_class() != "Terrain3D":
 		push_error("[Terrain3DMobile] configure() needs a Terrain3D node")
 		return {}
@@ -215,6 +232,31 @@ static func configure(terrain: Node, world_size: float, quality: Tier,
 			material.call("set_shader_param", "depth_blur", 0.0)
 			# Pull mips in earlier: cheaper sampling, less shimmer at distance.
 			material.call("set_shader_param", "mipmap_bias", 1.1)
+			# Past this distance the shader biases harder towards small mips.
+			# Terrain3D's default is 512 m, which is beyond the entire world on
+			# a bounded map — so it never kicked in and distant ground kept
+			# sampling large mips it could not resolve.
+			material.call("set_shader_param", "bias_distance",
+				settings["bias_distance"])
+
+	var shader_applied := false
+	if mobile_shader and material != null and ResourceLoader.exists(MOBILE_SHADER):
+		var shader: Shader = ResourceLoader.load(MOBILE_SHADER) as Shader
+		if shader != null:
+			material.set("shader_override", shader)
+			if material.has_method("enable_shader_override"):
+				material.call("enable_shader_override", true)
+			shader_applied = true
+
+	# Terrain3D follows a camera to snap the clipmap. Without one it prints an
+	# error from _physics_process and stops processing, so the terrain simply
+	# never moves with the player — easy to miss, since it still renders.
+	# In 1.0.2 this is a method, not a property: there is no `clipmap_target`
+	# until 1.1.
+	if terrain.has_method("get_camera") and terrain.call("get_camera") == null:
+		push_warning("[Terrain3DMobile] no camera set. Call " +
+			"Terrain3D.set_camera(your_camera) or the terrain will not follow " +
+			"the player.")
 
 	return {
 		"tier": Tier.keys()[quality],
@@ -230,6 +272,7 @@ static func configure(terrain: Node, world_size: float, quality: Tier,
 		"shadows": settings["shadows"],
 		"collision": collision,
 		"world_background": "NONE",
+		"mobile_shader": shader_applied,
 	}
 
 
@@ -249,6 +292,8 @@ static func format_report(report: Dictionary) -> String:
 	lines.append("  shadows      %s   collision %s" % [
 		"on" if report["shadows"] else "off",
 		"on" if report["collision"] else "off"])
+	lines.append("  shader       %s" % ("mobile override (trilinear samplers)"
+		if report.get("mobile_shader", false) else "Terrain3D stock (anisotropic)"))
 	if report["coverage_m"] < report["requested_size_m"]:
 		lines.append("  NOTE: capped at %d LODs by the tier budget, so it reaches" %
 			report["max_lods"])

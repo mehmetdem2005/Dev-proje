@@ -21,6 +21,46 @@ func _check(label: String, actual: Variant, expected: Variant) -> void:
 		_failures += 1
 
 
+## The single biggest memory decision in the package.
+##
+## Godot imports textures Lossless with no mipmaps by default. Terrain3D copies
+## the source format straight into its texture arrays, so that default would put
+## 32 uncompressed 512x512 RGBA textures x2 arrays — about 85 MB with mipmaps —
+## into VRAM for the ground alone. tools/fix_imports.py is what stops that, and
+## this is the check that it is still working.
+func _report_texture_memory() -> void:
+	const FORMATS := {5: "RGBA8", 17: "DXT1", 18: "DXT3", 19: "DXT5",
+		22: "BPTC_RGBA", 25: "ETC", 30: "ETC2_RGBA8", 34: "ASTC_4x4"}
+	print("[texture memory]")
+	if not ResourceLoader.exists("res://terrain3d_assets.tres"):
+		print("  (no terrain3d_assets.tres — run tools/build_assets.gd)")
+		return
+	var assets: Object = ResourceLoader.load("res://terrain3d_assets.tres")
+	var list: Array = assets.get("texture_list")
+	if list.is_empty():
+		print("  (asset list empty)")
+		return
+
+	var total := 0.0
+	for slot: String in ["albedo_texture", "normal_texture"]:
+		var texture: Texture2D = list[0].get(slot)
+		if texture == null:
+			continue
+		var image: Image = texture.get_image()
+		var bytes: int = image.get_data().size()
+		var megabytes := bytes * float(list.size()) / 1048576.0
+		total += megabytes
+		var compressed: bool = image.get_format() != Image.FORMAT_RGBA8
+		print("  %-14s %dx%d %-10s mips=%s  x%d = %5.1f MB" % [
+			slot.trim_suffix("_texture"), image.get_width(), image.get_height(),
+			FORMATS.get(image.get_format(), str(image.get_format())),
+			image.has_mipmaps(), list.size(), megabytes])
+		_check("  %s compressed" % slot.trim_suffix("_texture"), compressed, true)
+		_check("  %s mipmapped" % slot.trim_suffix("_texture"),
+			image.has_mipmaps(), true)
+	print("  arrays total   %.1f MB  (uncompressed would be ~85 MB)" % total)
+
+
 func _initialize() -> void:
 	print("=== Terrain3D mobile configuration ===")
 
@@ -62,6 +102,8 @@ func _initialize() -> void:
 			report["mesh_instances"], report["coverage_m"]])
 
 		terrain.queue_free()
+
+	_report_texture_memory()
 
 	if _failures == 0:
 		print("\nVERIFY PASS")

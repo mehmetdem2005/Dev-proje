@@ -27,6 +27,13 @@ renderer/rendering_method.mobile="mobile"
 ; arrays must be in a format the device can sample.
 textures/vram_compression/import_etc2_astc=true
 
-lights_and_shadows/directional_shadow/size=2048
+; 2048 is a desktop default. 1024 is plenty for a bounded map and saves both
+; memory and the fill cost of the shadow pass.
+lights_and_shadows/directional_shadow/size=1024
 lights_and_shadows/directional_shadow/soft_shadow_filter_quality=0
 anti_aliasing/quality/msaa_3d=0
+
+; Godot defaults anisotropic filtering to 2x globally. On a phone that is paid
+; on every textured surface, and the terrain shader override already drops to
+; trilinear — this makes the rest of the project agree.
+textures/default_filters/anisotropic_filtering_level=0

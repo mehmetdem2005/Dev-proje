@@ -18,8 +18,57 @@ yanlış, ve bu paket üçünü de düzeltiyor.
 | `dual_scaling` | açık | kapalı |
 | Arazi gölgesi | açık | kapalı (LOW/MEDIUM) |
 
+Ayrıca **32 hazır yeryüzü texture'ı** paketin içinde — CC0, mobil boyutta,
+Terrain3D'nin kanal düzenine göre paketlenmiş, sıkıştırılmış ve `.tres` olarak
+hazır. Açıp boyamaya başlayabilirsin.
+
 Ölçülen değerler uydurma değil — `tools/verify.gd` bunları çalışan eklentiye
 karşı doğruluyor, aşağıdaki **Doğrulama** bölümüne bakın.
+
+## Texture paketi
+
+**32 texture** — Terrain3D'nin dizi sınırı da tam olarak 32. Hepsi CC0
+(ambientCG), 512×512, kaynakları `textures/SOURCES.md` içinde tek tek yazılı.
+
+| Kategori | Adet | Örnekler |
+| --- | --- | --- |
+| Kaya / kayalık | 11 | `rock_granite`, `rock_strata`, `cliff_layered`, `rock_slate` |
+| Toprak / çamur | 10 | `dirt_dry`, `soil_dark`, `mud_wet`, `leaf_litter` |
+| Çim | 4 | `grass_meadow`, `grass_dry`, `grass_tufted`, `grass_patchy` |
+| Çakıl / moloz | 4 | `gravel_grey`, `scree_slope`, `gravel_river` |
+| Kar | 2 | `snow_fresh`, `snow_packed` |
+| Kum | 1 | `sand_fine` |
+
+Hepsinin **height, normal ve roughness** haritası var. `terrain3d_assets.tres`
+hazır — `Terrain3D.assets` alanına sürükle, 32'si birden gelir.
+
+### Kanal düzeni
+
+Terrain3D gevşek PBR haritaları almıyor. Tam olarak iki texture dizisi
+örnekliyor ve her birinden dört kanal okuyor:
+
+```
+<isim>_alb_ht.png    RGB = albedo (sRGB),  A = height
+<isim>_nrm_rg.png    RGB = normal (OpenGL), A = roughness
+```
+
+Alfa kanalları boşluk doldurmuyor. `albedo.a`, bir malzemeyi diğerinin üstüne
+karıştırırken kullanılan yükseklik — çakılın kayanın çatlaklarına oturmasını
+sağlayan şey bu, yoksa iki doku birbirine solar. `normal.a` ise roughness.
+İkisinden birini yanlış paketlersen sonuç doku hatası gibi değil, **ışıklandırma
+hatası** gibi görünür.
+
+Kendi texture'ını eklemek istersen:
+
+```bash
+blender -b --python tools/fetch_textures.py -- --size 512 --count 32
+python3 tools/fix_imports.py
+godot --headless --import
+godot --headless -s tools/build_assets.gd
+```
+
+Dizideki her texture **aynı boyut, aynı format ve aynı mipmap ayarında**
+olmalı. Biri farklıysa Terrain3D dizi kurmayı reddeder ve konsola uyarı basar.
 
 ## Kurulum
 
@@ -111,6 +160,61 @@ pahalı olanlar bunlar.
 | triplanar projeksiyon | kapalı | kapalı | açık |
 | makro varyasyon | kapalı | kapalı | açık |
 
+## En büyük bellek kazancı: import ayarları
+
+Godot texture'ları varsayılan olarak **Lossless ve mipmap'siz** içe aktarır.
+Terrain3D ise kaynak formatı olduğu gibi kendi texture dizisine kopyalar. Yani
+varsayılan ayarlarla:
+
+| | Varsayılan Godot importu | `tools/fix_imports.py` sonrası |
+| --- | --- | --- |
+| Format | RGBA8 (sıkıştırılmamış) | DXT5 / ETC2 / ASTC |
+| Mipmap | yok | var |
+| **32 texture × 2 dizi** | **~85 MB VRAM** | **21.3 MB VRAM** |
+
+Sadece zeminin **64 MB VRAM** fazladan yemesi demekti bu. Telefonda kasmanın —
+hatta çökmenin — en olası tek sebebi.
+
+Üç ayar:
+
+- `compress/mode=2` → Android'de ETC2/ASTC.
+- `mipmaps/generate=true` → mipmap olmadan uzaktaki her piksel tam çözünürlüğü
+  örnekler, texture cache'i döver ve kamera oynadıkça parlar. Terrain3D
+  `textureGrad` ile örnekliyor, yani mipmap bekliyor.
+- `compress/normal_map=2` (Disabled) → "Detect", alfayı atan bir normal-map
+  codec'i seçebilir. `*_nrm_rg.png`'nin alfası **roughness**. Sessizce
+  kaybedersen bütün arazi tek tip parlak olur.
+
+Bu ayarlar `.import` dosyalarında; texture eklersen scripti tekrar çalıştır.
+
+## Mobil shader override
+
+Terrain3D'nin **anizotropik olmayan bir yolu yok**: `texture_filtering`'in her
+iki seçeneği de (`Linear` ve `Nearest`) anizotropik sampler kullanıyor —
+`uniforms.glsl` içinde sabit. Ekranı dolduran bir yüzeyde iki texture dizisini
+anizotropik örneklemek, telefonun sahip olmadığı bant genişliği demek.
+
+Eklentinin kendi ayarlarıyla bu kapatılamıyor, o yüzden paket üretilmiş
+shader'ı override ediyor:
+
+```
+filter_linear_mipmap_anisotropic  →  filter_linear_mipmap     (4 sampler)
+```
+
+`mobile/terrain3d_mobile.gdshader` bu shader. Terrain3D shader'ını açık
+özelliklere göre çalışma anında birleştirdiği için, bu dosya **mobil özellik
+seti** için üretildi (`world_background` NONE, `auto_shader` kapalı,
+`dual_scaling` kapalı) — o bloklar shader'ın içinde hiç yok, yorum satırı bile
+değil.
+
+Bu özelliklerden birini geri açarsan shader onu yansıtmaz. Ya yeniden üret:
+
+```bash
+godot --headless --quit-after 20 tools/dump_shader.tscn
+```
+
+ya da `use_mobile_shader = false` yap.
+
 ## Neyi neden kapattım
 
 Hepsi ekranın çoğunu kaplayan bir yüzeyde **piksel başına** çalışan şeyler.
@@ -137,6 +241,13 @@ Telefonda pahalı olan da tam olarak bu.
 - **`texture_filtering = LINEAR`** — anizotropik filtreleme mobil bant
   genişliğini yer.
 - **`gi_mode = Disabled`** — mobilde global illumination zaten kullanılmıyor.
+- **`bias_distance`** — shader'ın küçük mipmap'lere geçmeye başladığı mesafe.
+  Terrain3D'nin varsayılanı 512 m; sınırlı bir haritada bu zaten dünyanın
+  dışında kalıyor, yani hiç devreye girmiyordu. Kaliteye göre 96–320 m.
+- **`anisotropic_filtering_level=0`** (proje ayarı) — Godot global anizotropiyi
+  varsayılan 2x veriyor ve bu her dokulu yüzeyde ödeniyor.
+- **Yönlü gölge atlası 2048 → 1024** — sınırlı bir harita için fazlasıyla
+  yeterli, hem bellekten hem gölge geçişinin dolgu maliyetinden kazandırıyor.
 
 ## Doğrulama
 
@@ -170,7 +281,17 @@ Mobile ile, boş veriyle (henüz bölge oluşturulmamış):
 [Demo] renderer: Vulkan — Forward Mobile
 [Demo] mesh_lods=3 mesh_size=24 vertex_spacing=1.5
 [Demo] material world_background=0 (0=None 1=Flat 2=Noise)
+[Demo] textures loaded=32
 [Demo] objects in frame=41 draw calls=41 prims=31786
+```
+
+Texture belleği de doğrulanıyor:
+
+```
+[texture memory]
+  albedo         512x512 DXT5       mips=true  x32 =  10.7 MB
+  normal         512x512 DXT5       mips=true  x32 =  10.7 MB
+  arrays total   21.3 MB  (uncompressed would be ~85 MB)
 ```
 
 64 instance'ın 41'i karede — gerisini frustum eliyor. Harita verisi
@@ -205,9 +326,14 @@ Editör fırçaları (`addons/terrain_3d/brushes/`, 12 MB) sadece editörde gere
   Terrain3D dokularını doku dizisi olarak okuyor; sorun yaşarsanız önce
   `import_etc2_astc` ayarını doğrulayın.
 - **DDS kullanmayın**, Godot'un içe aktardığı PNG/TGA kullanın.
-- Bu paket eklentiyi *yapılandırıyor*, shader'ını yeniden yazmıyor. Daha da
-  ileri gitmek isterseniz `material.shader_override_enabled = true` ile üretilen
-  shader'ı kaydedip elle budayabilirsiniz.
+- **Kamerayı vermeyi unutma.** Terrain3D clipmap'i bir kameraya göre kaydırır.
+  `Terrain3D.set_camera(kameran)` çağırmazsan `_physics_process`'ini kapatıp
+  hata basar ve zemin oyuncuyla birlikte hareket etmez — ama görüntü çizilmeye
+  devam ettiği için fark etmesi zordur. Yapılandırıcı bunu uyarı olarak
+  söylüyor. (v1.0.2'de bu bir metot; `clipmap_target` özelliği 1.1 ile geliyor.)
+- Texture dizisi 32 ile sınırlı ve hepsi bellekte durur. 32'ye ihtiyacın yoksa
+  `textures/SOURCES.json` içinden çıkar ve `tools/build_assets.gd`'yi tekrar
+  çalıştır; her texture çifti ~0.7 MB VRAM.
 
 ## Lisans
 

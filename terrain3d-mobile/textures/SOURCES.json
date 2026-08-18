@@ -1,0 +1,295 @@
+{
+ "license": "CC0 1.0",
+ "provider": "ambientCG",
+ "size": 512,
+ "textures": [
+  {
+   "id": 0,
+   "name": "grass_meadow",
+   "source": "Grass004",
+   "category": "grass",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 1,
+   "name": "grass_dry",
+   "source": "Grass003",
+   "category": "grass",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 2,
+   "name": "grass_tufted",
+   "source": "Grass001",
+   "category": "grass",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 3,
+   "name": "grass_patchy",
+   "source": "Grass002",
+   "category": "grass",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 4,
+   "name": "dirt_dry",
+   "source": "Ground047",
+   "category": "soil",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 5,
+   "name": "dirt_packed",
+   "source": "Ground037",
+   "category": "soil",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 6,
+   "name": "dirt_forest",
+   "source": "Ground003",
+   "category": "soil",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 7,
+   "name": "soil_dark",
+   "source": "Ground054",
+   "category": "soil",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 8,
+   "name": "soil_cracked",
+   "source": "Ground033",
+   "category": "soil",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 9,
+   "name": "mud_wet",
+   "source": "Ground048",
+   "category": "soil",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 10,
+   "name": "mud_tracks",
+   "source": "Ground052",
+   "category": "soil",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 11,
+   "name": "leaf_litter",
+   "source": "Ground042",
+   "category": "soil",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 12,
+   "name": "sand_fine",
+   "source": "Ground027",
+   "category": "sand",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 13,
+   "name": "gravel_grey",
+   "source": "Gravel022",
+   "category": "gravel",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 14,
+   "name": "gravel_pale",
+   "source": "Gravel023",
+   "category": "gravel",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 15,
+   "name": "gravel_river",
+   "source": "Gravel021",
+   "category": "gravel",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 16,
+   "name": "scree_slope",
+   "source": "Ground038",
+   "category": "gravel",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 17,
+   "name": "rock_granite",
+   "source": "Rock030",
+   "category": "rock",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 18,
+   "name": "rock_strata",
+   "source": "Rock023",
+   "category": "rock",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 19,
+   "name": "rock_mossy",
+   "source": "Rock035",
+   "category": "rock",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 20,
+   "name": "rock_cracked",
+   "source": "Rock029",
+   "category": "rock",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 21,
+   "name": "rock_boulder",
+   "source": "Rock020",
+   "category": "rock",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 22,
+   "name": "rock_weathered",
+   "source": "Rock022",
+   "category": "rock",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 23,
+   "name": "rock_dark",
+   "source": "Rock028",
+   "category": "rock",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 24,
+   "name": "cliff_layered",
+   "source": "Rock026",
+   "category": "rock",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 25,
+   "name": "cliff_sharp",
+   "source": "Rock025",
+   "category": "rock",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 26,
+   "name": "rock_slate",
+   "source": "Rock031",
+   "category": "rock",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 27,
+   "name": "rock_pebbles",
+   "source": "Rock024",
+   "category": "rock",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 28,
+   "name": "snow_fresh",
+   "source": "Snow006",
+   "category": "snow",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 29,
+   "name": "snow_packed",
+   "source": "Snow004",
+   "category": "snow",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 30,
+   "name": "ground_rough",
+   "source": "Ground068",
+   "category": "soil",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  },
+  {
+   "id": 31,
+   "name": "ground_stony",
+   "source": "Ground078",
+   "category": "soil",
+   "height": true,
+   "normal": true,
+   "roughness": true
+  }
+ ]
+}

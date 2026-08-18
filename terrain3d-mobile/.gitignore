@@ -2,3 +2,7 @@
 .godot/
 # APK output.
 build/
+# ambientCG download cache — hundreds of MB of source zips. The repacked
+# textures in textures/ are the deliverable; re-run tools/fetch_textures.py to
+# refill this.
+tools/.texture-cache/
