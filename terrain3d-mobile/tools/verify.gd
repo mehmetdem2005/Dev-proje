@@ -36,7 +36,9 @@ func _report_texture_memory() -> void:
 		print("  (no terrain3d_assets.tres — run tools/build_assets.gd)")
 		return
 	var assets: Object = ResourceLoader.load("res://terrain3d_assets.tres")
-	var list: Array = assets.get("texture_list")
+	# get_texture_list() the method, not the property: the property carries
+	# READ_ONLY | EDITOR usage and reads back empty outside the editor.
+	var list: Array = assets.call("get_texture_list")
 	if list.is_empty():
 		print("  (asset list empty)")
 		return

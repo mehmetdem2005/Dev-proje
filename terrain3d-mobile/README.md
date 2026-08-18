@@ -83,9 +83,41 @@ olmalı. Biri farklıysa Terrain3D dizi kurmayı reddeder ve konsola uyarı basa
 
 Bu depodaki proje zaten böyle ayarlı; doğrudan açıp çalıştırabilirsiniz.
 
-## Kullanım
+## Nasıl kullanılır (şekillendirme)
 
-`Terrain3D` düğümünüzün altına bir `Terrain3DMobile` düğümü koyun:
+`demo/mobile_demo.tscn`'i aç. İçinde **hazır bir Terrain3D düğümü** ve
+**4 bölgelik, tepeleri şekillendirilmiş bir zemin** var — açar açmaz yeri
+görürsün.
+
+Şekillendirme araçlarını görmek için:
+
+1. **Sahne panelinden `Terrain3D` düğümünü seç.** Araç çubuğu sadece Terrain3D
+   düğümü seçiliyken çıkar. Seçili değilken hiçbir buton görünmez — eksik
+   olduğunu sanmanın en yaygın sebebi bu.
+2. Butonlar **3B görünümün üst şeridinde** belirir: yükselt/alçalt, düzle,
+   yumuşat, doku boya, püskürt, delik, navigasyon, nesne serpiştirme.
+3. **Alttaki `Terrain3D` sekmesi** doku listesini açar — 32 texture orada, boyamak
+   için birine tıkla.
+4. Sol tık uygular, **Ctrl + sol tık tersini** yapar (yükselt yerine alçalt).
+   Fırça boyutu ve gücü üst şeritte.
+
+Terrain3D düğümü kilitli (`_edit_lock_`) — bunu eklenti kendisi yapıyor ki
+araziyi yanlışlıkla kaydırmayasın. Sahne panelinden seçmen yeterli.
+
+> Not: sahne dosyası artık Terrain3D sınıfına doğrudan referans veriyor. Eklenti
+> etkin değilken sahne açılmaz — önce **Plugins**'ten etkinleştir ve editörü
+> yeniden başlat.
+
+Başlangıç haritasını yeniden üretmek (kendi tepelerini yapmadan önce sıfırlamak
+istersen):
+
+```bash
+godot --headless --quit-after 60 tools/build_starter.tscn
+```
+
+## Kendi sahnene kurmak
+
+Kendi sahnende `Terrain3D` düğümünün altına bir `Terrain3DMobile` düğümü koy:
 
 ```
 Terrain3D
@@ -274,6 +306,13 @@ olduğunu, instance sayısının sınırlı kaldığını.
 VERIFY PASS
 ```
 
+Mobil shader ile stok shader'ı karşılaştırmak için:
+
+```bash
+T3D_STOCK_SHADER=1 godot          # anizotropik stok shader'a döner
+T3D_SHOT=/tmp/kare.png godot      # bir kare yakalayıp çıkar
+```
+
 Demo sahnesi (`demo/mobile_demo.tscn`) çalışan oyunda ölçüyor. Vulkan Forward
 Mobile ile, boş veriyle (henüz bölge oluşturulmamış):
 
@@ -331,6 +370,10 @@ Editör fırçaları (`addons/terrain_3d/brushes/`, 12 MB) sadece editörde gere
   hata basar ve zemin oyuncuyla birlikte hareket etmez — ama görüntü çizilmeye
   devam ettiği için fark etmesi zordur. Yapılandırıcı bunu uyarı olarak
   söylüyor. (v1.0.2'de bu bir metot; `clipmap_target` özelliği 1.1 ile geliyor.)
+- **Çalışan oyunda `get_texture_count()` 0 döner.** Hata değil: Terrain3D'nin
+  `free_editor_textures` ayarı varsayılan olarak açık ve editör dışında, doku
+  dizilerini kurduktan sonra kaynak Texture2D'leri serbest bırakıyor. Diziler
+  yerinde, tek tek dokular değil — telefonda tam istenen davranış.
 - Texture dizisi 32 ile sınırlı ve hepsi bellekte durur. 32'ye ihtiyacın yoksa
   `textures/SOURCES.json` içinden çıkar ve `tools/build_assets.gd`'yi tekrar
   çalıştır; her texture çifti ~0.7 MB VRAM.
