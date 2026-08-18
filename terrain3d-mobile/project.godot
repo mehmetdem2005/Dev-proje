@@ -1,0 +1,32 @@
+; Terrain3D Mobile — bounded, minimised Terrain3D setup for Android.
+;
+; Engine configuration file.
+
+config_version=5
+
+[application]
+
+config/name="Terrain3D Mobile"
+config/description="Terrain3D 1.0.2-stable configured for phones: bounded clipmap, no infinite background."
+run/main_scene="res://demo/mobile_demo.tscn"
+config/features=PackedStringArray("4.4", "Forward Plus")
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/terrain_3d/plugin.cfg")
+
+[rendering]
+
+; Terrain3D supports Forward Mobile. Compatibility (GLES3) is NOT supported by
+; 1.0.2 — it needs Godot 4.4+ and Terrain3D 1.0+ and is still fragile there, so
+; this package targets Vulkan Mobile only.
+renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="mobile"
+
+; Required on Android: Terrain3D reads its textures as texture arrays, and the
+; arrays must be in a format the device can sample.
+textures/vram_compression/import_etc2_astc=true
+
+lights_and_shadows/directional_shadow/size=2048
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality=0
+anti_aliasing/quality/msaa_3d=0
